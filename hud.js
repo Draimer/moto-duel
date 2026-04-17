@@ -11,6 +11,7 @@ const HUD = (() => {
 
   // Lap notification timers
   const lapNotifTimers = { p1: null, p2: null };
+  let systemMsgTimer = null;
 
   function init(curve) {
     trackCurve = curve;
@@ -89,12 +90,13 @@ const HUD = (() => {
     _pill(`${id}-pill-rumble`, pills.rumble);
     _pill(`${id}-pill-bump`,   pills.bump);
 
-    // Wrong-way detection (moving backward on track)
-    const delta = bike.trackT - bike.prevTrackT;
-    const wrappedDelta = delta > 0.5 ? delta - 1 : (delta < -0.5 ? delta + 1 : delta);
+    // Wrong-way warning
     const wrongWayEl = document.getElementById(`${id}-wrongway`);
     if (wrongWayEl) {
-      wrongWayEl.style.opacity = (wrappedDelta < -0.001 && bike.speed > 5) ? '1' : '0';
+      const wrongMs = Math.max(0, Math.floor(bike.wrongWayTime || 0));
+      const warn = wrongMs > 700;
+      wrongWayEl.style.opacity = warn ? '1' : '0';
+      wrongWayEl.textContent = warn ? `WRONG WAY ${Math.ceil(wrongMs / 1000)}s` : 'WRONG WAY';
     }
   }
 
@@ -212,6 +214,17 @@ const HUD = (() => {
     overlay.style.display = 'flex';
   }
 
+  function showSystemMessage(text) {
+    const el = document.getElementById('system-msg');
+    if (!el) return;
+    el.textContent = text;
+    el.style.opacity = '1';
+    clearTimeout(systemMsgTimer);
+    systemMsgTimer = setTimeout(() => {
+      el.style.opacity = '0';
+    }, 1500);
+  }
+
   // ── COUNTDOWN ─────────────────────────────────────────────────
   function showCountdown(onComplete) {
     const el  = document.getElementById('countdown');
@@ -268,5 +281,5 @@ const HUD = (() => {
     else        el.classList.remove('active');
   }
 
-  return { init, update, showLapNotif, showWinner, showCountdown, _fmt };
+  return { init, update, showLapNotif, showWinner, showCountdown, showSystemMessage, _fmt };
 })();
