@@ -41,7 +41,7 @@ function initScene() {
   fill.position.set(-60, 40, -80);
   scene.add(fill);
 
-renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+  renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
@@ -255,6 +255,7 @@ function resetBikeToTrack(state, laneOffset, reason) {
 
   const t = Track.getNearestT(state.position, state.trackT);
   const center = trackData.trackCurve.getPoint(t);
+  
   const tangent = Track.getForwardTangent(t);
   const right = new THREE.Vector3(tangent.z, 0, -tangent.x).normalize();
   const trackY = Track.getTrackYAt(t);
