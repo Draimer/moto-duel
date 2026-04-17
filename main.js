@@ -41,7 +41,7 @@ function initScene() {
   fill.position.set(-60, 40, -80);
   scene.add(fill);
 
-renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+  renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
@@ -75,7 +75,8 @@ function spawnBikes() {
   const startTan   = spline.getTangent(0.0);
   const frames     = spline.computeFrenetFrames(1, true);
   const binormal   = frames.binormals[0];
-  // 起跑朝向需沿著賽道切線正方向，避免一開始面向反向
+  
+  // 修正：移除負號，讓初始車頭順向
   const startAngle = Math.atan2(startTan.x, startTan.z);
 
   const p1Pos = startPt.clone().addScaledVector(binormal, -2.5).add(new THREE.Vector3(0, 0.5, 0));
@@ -258,7 +259,8 @@ function resetBikeToTrack(state, laneOffset, reason) {
   const tangent = trackData.trackCurve.getTangent(t).normalize();
   const right = new THREE.Vector3(tangent.z, 0, -tangent.x).normalize();
   const trackY = Track.getTrackYAt(t);
-  // 重置朝向需與起跑一致：沿切線正方向
+  
+  // 修正：移除負號，確保重置後車頭朝前
   const angle = Math.atan2(tangent.x, tangent.z);
 
   state.position.copy(center).addScaledVector(right, laneOffset);
