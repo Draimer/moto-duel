@@ -38,8 +38,8 @@ const Track = (() => {
     [ -0.42, -0.62 ],  // 17  Club 入彎
     [ -0.12, -0.65 ],  // 18  Club 頂點 (緊右彎)
     [  0.18, -0.58 ],  // 19  Club 出彎 / Luffield
-    [  0.42, -0.38 ],  // 20  Woodcote (快速右彎)
-    [  0.60, -0.12 ],  // 21  回主直線入口
+    [  0.66, -0.34 ],  // 20  Woodcote (外拋更大，避開路段重疊)
+    [  0.72,  0.10 ],  // 21  回主直線入口（抬高接回主直線，避免交叉）
   ];
 
   // Silverstone 地形平坦，不需高低差
@@ -49,6 +49,7 @@ const Track = (() => {
   const ELEVATION_SCALE = 1.0;   // 平坦，此值無影響
   const TRACK_WIDTH     = 12;
   const ROAD_LIFT       = 0.08;
+  const ROAD_DECAL_LIFT = ROAD_LIFT + 0.03;
   const TOTAL_LAPS      = 5;
   const BUMP_SEGMENTS   = [27, 28, 29];  // Club 出口路面較顛簸
 
@@ -128,6 +129,10 @@ const Track = (() => {
     _buildBarriers(scene);
     _buildStartLine(scene);
     _buildGrandstand(scene);
+    _buildPitComplex(scene);
+    _buildRunoffApron(scene);
+    _buildSponsorBoards(scene);
+    _buildMarshalTowers(scene);
     _buildClubTireWall(scene);
     _buildDirectionArrows(scene);
     _buildTrees(scene);
@@ -188,7 +193,7 @@ const Track = (() => {
       roadGeo,
       new THREE.MeshLambertMaterial({
         color: 0x252525,
-        side: THREE.DoubleSide,
+        side: THREE.FrontSide,
         polygonOffset: true,
         polygonOffsetFactor: -1,
         polygonOffsetUnits: -1,
@@ -208,7 +213,7 @@ const Track = (() => {
     for (let i = 0; i < pts.length - 1; i++) {
       acc += pts[i].distanceTo(pts[i + 1]);
       if (acc > 9) { acc = 0; on = !on; }
-      if (on) pos.push(pts[i].x, pts[i].y + ROAD_LIFT + 0.02, pts[i].z);
+      if (on) pos.push(pts[i].x, pts[i].y + ROAD_DECAL_LIFT, pts[i].z);
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -233,7 +238,7 @@ const Track = (() => {
         p.clone().addScaledVector(b,   TRACK_WIDTH),
         p.clone().addScaledVector(b,   TRACK_WIDTH + KW),
       ].forEach(kp => {
-        pos.push(kp.x, kp.y + ROAD_LIFT + 0.02, kp.z);
+        pos.push(kp.x, kp.y + ROAD_DECAL_LIFT, kp.z);
         col.push(r, g, bv);
       });
     }
@@ -256,12 +261,62 @@ const Track = (() => {
         vertexColors: true,
         side: THREE.FrontSide,
         polygonOffset: true,
-        polygonOffsetFactor: -1,
+        polygonOffsetFactor: -2,
         polygonOffsetUnits: -1,
       })
     );
     kerbMesh.renderOrder = 6;
     scene.add(kerbMesh);
+  }
+
+  // ── RUNOFF APRON (修復賽道邊緣破圖 / 補強視覺過渡) ───────────
+  function _buildRunoffApron(scene) {
+    const SEG = 600;
+    const SHOULDER_IN = TRACK_WIDTH + 1.6;
+    const SHOULDER_OUT = TRACK_WIDTH + 6.8;
+    const pts = trackCurve.getSpacedPoints(SEG);
+    const frames = trackCurve.computeFrenetFrames(SEG, true);
+    const pos = [], idx = [];
+
+    for (let i = 0; i <= SEG; i++) {
+      const p = pts[i];
+      const b = frames.binormals[i];
+      const li = p.clone().addScaledVector(b, -SHOULDER_IN);
+      const lo = p.clone().addScaledVector(b, -SHOULDER_OUT);
+      const ri = p.clone().addScaledVector(b,  SHOULDER_IN);
+      const ro = p.clone().addScaledVector(b,  SHOULDER_OUT);
+      pos.push(
+        lo.x, lo.y + ROAD_LIFT - 0.01, lo.z,
+        li.x, li.y + ROAD_LIFT - 0.01, li.z,
+        ri.x, ri.y + ROAD_LIFT - 0.01, ri.z,
+        ro.x, ro.y + ROAD_LIFT - 0.01, ro.z
+      );
+    }
+
+    for (let i = 0; i < SEG; i++) {
+      const b = i * 4;
+      idx.push(b, b + 1, b + 4, b + 1, b + 5, b + 4);
+      idx.push(b + 2, b + 3, b + 6, b + 3, b + 7, b + 6);
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+
+    const mesh = new THREE.Mesh(
+      geo,
+      new THREE.MeshLambertMaterial({
+        color: 0x303030,
+        side: THREE.FrontSide,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
+      })
+    );
+    mesh.receiveShadow = true;
+    mesh.renderOrder = 2;
+    scene.add(mesh);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -272,7 +327,7 @@ const Track = (() => {
     const ARROW_COUNT = 18;
     const ARROW_LEN   = 6.0;    // 前後總長 (m)
     const ARROW_W     = 2.8;    // 半寬 (m)
-    const Y_LIFT      = ROAD_LIFT + 0.07;
+    const Y_LIFT      = ROAD_DECAL_LIFT + 0.03;
 
     const mat = new THREE.MeshBasicMaterial({
       color:       0xFFD700,   // 亮黃
@@ -280,12 +335,15 @@ const Track = (() => {
       transparent: true,
       opacity:     0.88,
       depthWrite:  false,
+      polygonOffset: true,
+      polygonOffsetFactor: -3,
+      polygonOffsetUnits: -3,
     });
 
     for (let i = 0; i < ARROW_COUNT; i++) {
       const t   = i / ARROW_COUNT;
       const p   = trackCurve.getPoint(t);
-      const tan = trackCurve.getTangent(t).normalize();
+      const tan = getForwardTangent(t);
 
       // 用水平 tangent 計算穩定的左右方向（與 computeFrenetFrames 同邏輯）
       const up     = new THREE.Vector3(0, 1, 0);
@@ -329,33 +387,35 @@ const Track = (() => {
     }
 
     [-1, 1].forEach(sign => {
-      let pos = [], idx = [], vertCount = 0;
+      const pos = [];
+      const idx = [];
 
-      function flushChunk() {
-        if (vertCount < 2) { pos = []; idx = []; vertCount = 0; return; }
-        const geo = new THREE.BufferGeometry();
-        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-        geo.setIndex(idx);
-        geo.computeVertexNormals();
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.renderOrder = 7;
-        scene.add(mesh);
-        pos = []; idx = []; vertCount = 0;
-      }
-
-      for (let i = 0; i <= SEG; i++) {
-        const t = i / SEG;
-        if (isSkippedT(t)) { flushChunk(); continue; }
+      for (let i = 0; i < SEG; i++) {
         const p = pts[i].clone().addScaledVector(frames.binormals[i], sign * GAP);
-        pos.push(p.x, p.y + 0.02,          p.z);
+        pos.push(p.x, p.y + 0.02, p.z);
         pos.push(p.x, p.y + WALL_H + 0.02, p.z);
-        if (vertCount > 0) {
-          const a = (vertCount - 1) * 2;
-          idx.push(a, a+1, a+2,  a+1, a+3, a+2);
-        }
-        vertCount++;
       }
-      flushChunk();
+
+      for (let i = 0; i < SEG; i++) {
+        const tA = i / SEG;
+        const tB = ((i + 1) % SEG) / SEG;
+        if (isSkippedT(tA) || isSkippedT(tB)) continue;
+
+        const a = i * 2;
+        const b = i * 2 + 1;
+        const c = ((i + 1) % SEG) * 2;
+        const d = ((i + 1) % SEG) * 2 + 1;
+        idx.push(a, b, c,  b, d, c);
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geo.setIndex(idx);
+      geo.computeVertexNormals();
+
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.renderOrder = 7;
+      scene.add(mesh);
     });
   }
 
@@ -380,7 +440,7 @@ const Track = (() => {
         sq.position.copy(startPt)
           .addScaledVector(binormal, (c - cols / 2 + 0.5) * sqSz)
           .addScaledVector(tangent,  (row - 1) * sqSz);
-        sq.position.y += 0.06;
+        sq.position.y += ROAD_DECAL_LIFT;
         sq.rotation.x  = -Math.PI / 2;
         scene.add(sq);
       }
@@ -432,6 +492,111 @@ const Track = (() => {
       stripe.position.set(sfX + 7, r * 1.8, centZ);
       scene.add(stripe);
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  PIT COMPLEX (主直線維修區)
+  // ═══════════════════════════════════════════════════════════════
+  function _buildPitComplex(scene) {
+    const baseX = 0.62 * TRACK_SCALE - TRACK_WIDTH - 20;
+    const z0 = -0.06 * TRACK_SCALE;
+    const z1 = 0.56 * TRACK_SCALE;
+    const len = z1 - z0;
+    const centerZ = (z0 + z1) / 2;
+
+    const pitMain = new THREE.Mesh(
+      new THREE.BoxGeometry(22, 8, len),
+      new THREE.MeshLambertMaterial({ color: 0x6f7278 })
+    );
+    pitMain.position.set(baseX - 10, 4, centerZ);
+    scene.add(pitMain);
+
+    const glass = new THREE.Mesh(
+      new THREE.BoxGeometry(22.4, 2.5, len - 6),
+      new THREE.MeshLambertMaterial({ color: 0x5d758c })
+    );
+    glass.position.set(baseX - 10, 7.2, centerZ);
+    scene.add(glass);
+
+    const pitWall = new THREE.Mesh(
+      new THREE.BoxGeometry(1.0, 1.5, len + 8),
+      new THREE.MeshLambertMaterial({ color: 0xc9c9c9 })
+    );
+    pitWall.position.set(baseX + 1.5, 0.75, centerZ);
+    scene.add(pitWall);
+
+    const garageMat = new THREE.MeshLambertMaterial({ color: 0x404449 });
+    const garageCount = 18;
+    for (let i = 0; i < garageCount; i++) {
+      const z = z0 + (i + 0.5) * (len / garageCount);
+      const bay = new THREE.Mesh(new THREE.BoxGeometry(6.5, 3.2, 2.2), garageMat);
+      bay.position.set(baseX + 0.5, 1.6, z);
+      scene.add(bay);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  SPONSOR BOARDS
+  // ═══════════════════════════════════════════════════════════════
+  function _buildSponsorBoards(scene) {
+    const SEG = 120;
+    const pts = trackCurve.getSpacedPoints(SEG);
+    const frames = trackCurve.computeFrenetFrames(SEG, true);
+    const matA = new THREE.MeshLambertMaterial({ color: 0x0f4aa8 });
+    const matB = new THREE.MeshLambertMaterial({ color: 0xc81f27 });
+    const matC = new THREE.MeshLambertMaterial({ color: 0x1c1c1c });
+
+    for (let i = 0; i < SEG; i += 6) {
+      if ((i > 20 && i < 30) || (i > 90 && i < 100)) continue;
+      const p = pts[i];
+      const b = frames.binormals[i];
+      const t = trackCurve.getTangent(i / SEG).normalize();
+      const side = (i % 12 === 0) ? -1 : 1;
+      const pos = p.clone().addScaledVector(b, side * (TRACK_WIDTH + 10));
+      const board = new THREE.Mesh(
+        new THREE.BoxGeometry(7.5, 2.4, 0.5),
+        (i % 18 === 0) ? matA : (i % 18 === 6 ? matB : matC)
+      );
+      board.position.set(pos.x, 1.8, pos.z);
+      board.rotation.y = Math.atan2(t.x, t.z);
+      scene.add(board);
+
+      const pole = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, 2.6, 6),
+        new THREE.MeshLambertMaterial({ color: 0x8b8b8b })
+      );
+      pole.position.set(pos.x, 1.3, pos.z);
+      scene.add(pole);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  MARSHAL TOWERS
+  // ═══════════════════════════════════════════════════════════════
+  function _buildMarshalTowers(scene) {
+    const markerT = [0.08, 0.22, 0.44, 0.60, 0.78];
+    markerT.forEach((t, idx) => {
+      const p = trackCurve.getPoint(t);
+      const tangent = trackCurve.getTangent(t).normalize();
+      const side = idx % 2 === 0 ? 1 : -1;
+      const offset = new THREE.Vector3(tangent.z, 0, -tangent.x).normalize()
+        .multiplyScalar(side * (TRACK_WIDTH + 16));
+      const base = p.clone().add(offset);
+
+      const mast = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.45, 0.65, 10, 8),
+        new THREE.MeshLambertMaterial({ color: 0x727272 })
+      );
+      mast.position.set(base.x, 5, base.z);
+      scene.add(mast);
+
+      const booth = new THREE.Mesh(
+        new THREE.BoxGeometry(3.2, 1.8, 3.2),
+        new THREE.MeshLambertMaterial({ color: 0xe8e8e8 })
+      );
+      booth.position.set(base.x, 9.8, base.z);
+      scene.add(booth);
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -545,12 +710,20 @@ const Track = (() => {
 
   function getTrackYAt(t)     { return trackCurve.getPoint(t).y; }
   function isBumpZone(segIdx) { return BUMP_SEGMENTS.includes(segIdx); }
+  function getForwardTangent(t) {
+    if (!trackCurve) return new THREE.Vector3(0, 0, 1);
+    const wrappedT = ((t % 1) + 1) % 1;
+    const tan = trackCurve.getTangent(wrappedT).clone();
+    tan.y = 0;
+    if (tan.lengthSq() < 1e-8) return new THREE.Vector3(0, 0, 1);
+    return tan.normalize();
+  }
 
   // ═══════════════════════════════════════════════════════════════
   //  PUBLIC API
   // ═══════════════════════════════════════════════════════════════
   return {
-    build, getNearestT, getTrackYAt, isBumpZone,
+    build, getNearestT, getTrackYAt, isBumpZone, getForwardTangent,
     get curve()       { return trackCurve; },
     get checkpoints() { return checkpoints; },
     get width()       { return TRACK_WIDTH; },

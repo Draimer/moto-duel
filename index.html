@@ -43,6 +43,7 @@
     <!-- WRONG WAY -->
     <div class="wrong-way p1" id="p1-wrongway">WRONG WAY</div>
     <div class="wrong-way p2" id="p2-wrongway">WRONG WAY</div>
+    <div id="system-msg">SYSTEM</div>
 
     <!-- BOTTOM HUD PANELS -->
     <div class="hud-panel p1" id="hud-p1">
@@ -135,32 +136,35 @@
         <div class="controls-grid">
           <div class="ctrl-col">
             <div class="ctrl-col-title p1">PLAYER 1</div>
-            <div class="ctrl-row"><span class="kbd">W</span> 油門</div>
-            <div class="ctrl-row"><span class="kbd">S</span> 煞車</div>
-            <div class="ctrl-row"><span class="kbd">A D</span> 轉向</div>
-            <div class="ctrl-row"><span class="kbd">滑鼠</span> 視角</div>
-            <div class="ctrl-row"><span class="kbd">E</span> 升檔</div>
-            <div class="ctrl-row"><span class="kbd">Q</span> 降檔</div>
+            <div class="ctrl-row"><span class="kbd">↑</span> 油門</div>
+            <div class="ctrl-row"><span class="kbd">↓</span> 煞車</div>
+            <div class="ctrl-row"><span class="kbd">滑鼠</span> 轉向</div>
+            <div class="ctrl-row"><span class="kbd">→</span> 升檔</div>
+            <div class="ctrl-row"><span class="kbd">←</span> 降檔</div>
+            <div class="ctrl-row"><span class="kbd">R</span> 卡牆重置</div>
           </div>
           <div class="ctrl-col">
             <div class="ctrl-col-title p2">PLAYER 2</div>
-            <div class="ctrl-row"><span class="kbd">↑</span> 油門</div>
-            <div class="ctrl-row"><span class="kbd">↓</span> 煞車</div>
-            <div class="ctrl-row"><span class="kbd">J L</span> 轉向(鍵盤)</div>
-            <div class="ctrl-row"><span class="kbd">第二顆滑鼠</span> 轉向(HID)</div>
-            <div class="ctrl-row"><span class="kbd">P</span> 升檔</div>
-            <div class="ctrl-row"><span class="kbd">O</span> 降檔</div>
+            <div class="ctrl-row"><span class="kbd">W</span> 油門</div>
+            <div class="ctrl-row"><span class="kbd">S</span> 煞車</div>
+            <div class="ctrl-row"><span class="kbd">第二顆滑鼠</span> 轉向 (Bridge 必要)</div>
+            <div class="ctrl-row"><span class="kbd">D</span> 升檔</div>
+            <div class="ctrl-row"><span class="kbd">A</span> 降檔</div>
+            <div class="ctrl-row"><span class="kbd">U</span> 卡牆重置</div>
           </div>
         </div>
+        <div class="ctrl-row ctrl-row-center">
+          <span class="kbd">ESC</span>&nbsp;暫停 / 繼續
+        </div>
 
-        <div id="hid-section" style="margin: 18px 0; text-align: center;">
+        <div id="hid-section" class="hid-section">
           <button class="start-btn" id="hid-btn" type="button"
-                  style="font-size: 14px; padding: 10px 20px; background:#444;"
+                  style="font-size: 14px; padding: 10px 20px;"
                   onclick="connectP2Mouse()">
-            <span>🖱 啟用 P2 第二顆實體滑鼠 (WebHID)</span>
+            <span>🖱 啟用 P2 第二顆實體滑鼠 (MouseBridge)</span>
           </button>
-          <div id="hid-status" style="margin-top: 10px; font-size: 13px; color:#aaa; min-height: 1.2em;">
-            P2 預設使用鍵盤 J/L 轉向。點上方按鈕可指定一顆 USB 滑鼠給 P2 專用。
+          <div id="hid-status">
+            P2 轉向必須透過 MouseBridge 第二顆滑鼠。請先啟動本機 MouseBridge 後再按上方按鈕。
           </div>
         </div>
 
@@ -182,6 +186,36 @@
     </div>
   </div>
 
+  <!-- PAUSE MENU -->
+  <div id="pause-menu">
+    <div class="pause-card">
+      <div class="pause-title">PAUSED</div>
+      <button class="start-btn" id="btn-resume" type="button"><span>RESUME</span></button>
+      <button class="start-btn" id="btn-open-settings" type="button"><span>SETTINGS</span></button>
+      <button class="start-btn" id="btn-exit-menu" type="button"><span>BACK TO MENU</span></button>
+    </div>
+  </div>
+
+  <!-- SETTINGS PANEL -->
+  <div id="settings-panel">
+    <div class="settings-card">
+      <div class="pause-title">SETTINGS</div>
+      <label class="setting-row">
+        <span>自動重置</span>
+        <input type="checkbox" id="opt-auto-reset" checked />
+      </label>
+      <label class="setting-row">
+        <span>逆向自動重置秒數 <em id="opt-wrongway-val">3.6s</em></span>
+        <input type="range" id="opt-wrongway" min="2" max="8" step="0.2" value="3.6" />
+      </label>
+      <label class="setting-row">
+        <span>卡牆自動重置秒數 <em id="opt-stuck-val">2.6s</em></span>
+        <input type="range" id="opt-stuck" min="1.2" max="6" step="0.2" value="2.6" />
+      </label>
+      <button class="start-btn" id="settings-close" type="button"><span>CLOSE</span></button>
+    </div>
+  </div>
+
 </div><!-- end game-wrapper -->
 
 <!-- THREE.JS CDN -->
@@ -197,7 +231,7 @@
 <script src="hud.js"></script>
 <script src="main.js"></script>
 
-<!-- P2 WebHID 連線按鈕 handler -->
+<!-- P2 MouseBridge 連線按鈕 handler -->
 <script>
   async function connectP2Mouse() {
     const btn    = document.getElementById('hid-btn');
@@ -205,16 +239,16 @@
 
     if (!InputHID.supported()) {
       status.style.color = '#ff6666';
-      status.textContent = '❌ 此瀏覽器不支援 WebHID。請用 Chrome / Edge / Arc，且頁面要是 https 或 localhost。';
+      status.textContent = '❌ 目前環境不支援本機橋接（WebSocket）。請確認瀏覽器允許 ws://127.0.0.1 連線。';
       return;
     }
 
     if (InputHID.isActive()) {
       // 再按一次 = 解除
       await InputHID.disconnect();
-      btn.querySelector('span').textContent = '🖱 啟用 P2 第二顆實體滑鼠 (WebHID)';
+      btn.querySelector('span').textContent = '🖱 啟用 P2 第二顆實體滑鼠 (MouseBridge)';
       status.style.color = '#aaa';
-      status.textContent = '已解除。P2 回到鍵盤 J/L 轉向。';
+      status.textContent = '已解除。P2 暫時無法轉向，請重新連接 MouseBridge。';
       return;
     }
 
@@ -222,7 +256,7 @@
       const info = await InputHID.connect();
       btn.querySelector('span').textContent = '🔌 解除 P2 實體滑鼠';
       status.style.color = '#00E676';
-      status.textContent = '✅ 已連接：' + info.productName +
+      status.textContent = '✅ MouseBridge 已連接：' + info.productName +
         '  (VID ' + info.vendorId.toString(16) + ' / PID ' + info.productId.toString(16) + ')';
     } catch (err) {
       status.style.color = '#ff6666';

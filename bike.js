@@ -251,6 +251,9 @@ const Bike = (() => {
       feedbackRumble:false,
       feedbackRumbleTtl: 0,
       feedbackBump:  false,
+      offTrackTimer: 0,
+      lastProgressDelta: 0,
+      wrongWayTime: 0,
     };
   }
 
@@ -295,7 +298,7 @@ const Bike = (() => {
     state.position.x += Math.sin(state.angle) * state.speed * dt;
     state.position.z += Math.cos(state.angle) * state.speed * dt;
 
-    // Elevation  ─ 用上一幀的 trackT 當提示，避免 figure-8 交會處跳到錯的 T
+    // Elevation  ─ 用上一幀的 trackT 當提示，避免鄰近路段時跳到錯的 T
     const nearT  = Track.getNearestT(state.position, state.trackT);
     const trackY = Track.getTrackYAt(nearT);
     state.position.y += (trackY - state.position.y) * Math.min(1, dt * 12);
@@ -323,6 +326,10 @@ const Bike = (() => {
     const dx = state.position.x - trackCenter.x;
     const dz = state.position.z - trackCenter.z;
     const distFromCenter = Math.sqrt(dx * dx + dz * dz);
+
+    state.offTrackTimer = distFromCenter > width * 1.04
+      ? state.offTrackTimer + dt
+      : Math.max(0, state.offTrackTimer - dt * 1.6);
 
     if (distFromCenter > width * 1.1) {
       const pf = (distFromCenter - width * 1.1) / width;
@@ -433,6 +440,7 @@ const Bike = (() => {
     // 物理防護：單幀變化不可能超過幾個百分點，超過就視為噪音 (例如 spawn 的第一幀)
     if (Math.abs(delta) > 0.15) delta = 0;
 
+    state.lastProgressDelta = delta;
     state.totalProgress += delta;
     state.prevTrackT     = currentT;
 
