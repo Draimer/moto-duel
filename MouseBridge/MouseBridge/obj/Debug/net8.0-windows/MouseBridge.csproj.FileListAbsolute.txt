@@ -1,0 +1,17 @@
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net8.0-windows\MouseBridge.exe
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net8.0-windows\MouseBridge.deps.json
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net8.0-windows\MouseBridge.runtimeconfig.json
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net8.0-windows\MouseBridge.dll
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net8.0-windows\MouseBridge.pdb
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net8.0-windows\Fleck.dll
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\MouseBridge.csproj.AssemblyReference.cache
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\MouseBridge.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\MouseBridge.AssemblyInfoInputs.cache
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\MouseBridge.AssemblyInfo.cs
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\MouseBridge.csproj.CoreCompileInputs.cache
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\MouseBri.D08FA899.Up2Date
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\MouseBridge.dll
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\refint\MouseBridge.dll
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\MouseBridge.pdb
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\MouseBridge.genruntimeconfig.cache
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net8.0-windows\ref\MouseBridge.dll
