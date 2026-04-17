@@ -1,0 +1,17 @@
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net10.0\MouseBridge.exe
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net10.0\MouseBridge.deps.json
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net10.0\MouseBridge.runtimeconfig.json
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net10.0\MouseBridge.dll
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net10.0\MouseBridge.pdb
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\bin\Debug\net10.0\Fleck.dll
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\MouseBridge.csproj.AssemblyReference.cache
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\MouseBridge.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\MouseBridge.AssemblyInfoInputs.cache
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\MouseBridge.AssemblyInfo.cs
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\MouseBridge.csproj.CoreCompileInputs.cache
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\MouseBri.D08FA899.Up2Date
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\MouseBridge.dll
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\refint\MouseBridge.dll
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\MouseBridge.pdb
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\MouseBridge.genruntimeconfig.cache
+C:\Users\Shih\Downloads\moto-duel_8\moto-duel\MouseBridge\MouseBridge\obj\Debug\net10.0\ref\MouseBridge.dll
