@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MOTO DUEL — Custom Mouse Controller</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="game-wrapper">
+
+  <!-- THREE.JS RENDER CANVASES -->
+  <canvas id="canvas-p1"></canvas>
+  <canvas id="canvas-p2"></canvas>
+
+  <!-- CENTER SPLIT LINE -->
+  <div id="divider"></div>
+
+  <!-- IMPACT FLASHES -->
+  <div class="impact-flash" id="flash-p1"></div>
+  <div class="impact-flash" id="flash-p2"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+
+    <!-- TOP: Lap / Time per player -->
+    <div class="hud-top p1">
+      <div class="hud-lap" id="p1-lap">LAP 1 / 5</div>
+      <div class="hud-time" id="p1-time">00:00.000</div>
+      <div class="hud-best" id="p1-best">BEST: --:--.---</div>
+    </div>
+    <div class="hud-top p2">
+      <div class="hud-lap" id="p2-lap">LAP 1 / 5</div>
+      <div class="hud-time" id="p2-time">00:00.000</div>
+      <div class="hud-best" id="p2-best">BEST: --:--.---</div>
+    </div>
+
+    <!-- POSITION BANNERS -->
+    <div class="pos-banner p1">POSITION <span class="pos-val" id="p1-pos">P1</span></div>
+    <div class="pos-banner p2">POSITION <span class="pos-val" id="p2-pos">P2</span></div>
+
+    <!-- WRONG WAY -->
+    <div class="wrong-way p1" id="p1-wrongway">WRONG WAY</div>
+    <div class="wrong-way p2" id="p2-wrongway">WRONG WAY</div>
+
+    <!-- BOTTOM HUD PANELS -->
+    <div class="hud-panel p1" id="hud-p1">
+      <!-- Speed -->
+      <div class="hud-speed">
+        <div class="hud-speed-num" id="p1-speed">0</div>
+        <div class="hud-speed-unit">KM/H</div>
+      </div>
+      <!-- Gear + RPM -->
+      <div class="hud-gear-row">
+        <div class="hud-gear-label">GEAR</div>
+        <div class="hud-gear-num" id="p1-gear">1</div>
+      </div>
+      <div class="hud-rpm-track">
+        <div class="hud-rpm-fill" id="p1-rpm"></div>
+      </div>
+      <!-- Tilt visualizer -->
+      <div class="hud-tilt">
+        <div class="tilt-label">TILT</div>
+        <div class="tilt-track">
+          <div class="tilt-cursor" id="p1-tilt-cursor"></div>
+        </div>
+      </div>
+      <!-- Feedback pills -->
+      <div class="hud-feedback">
+        <div class="feedback-pill tilt-l" id="p1-pill-tiltl">◀ TILT</div>
+        <div class="feedback-pill tilt-r" id="p1-pill-tiltr">TILT ▶</div>
+        <div class="feedback-pill rumble" id="p1-pill-rumble">RUMBLE</div>
+        <div class="feedback-pill bump"   id="p1-pill-bump">BUMP</div>
+      </div>
+    </div>
+
+    <div class="hud-panel p2" id="hud-p2">
+      <div class="hud-speed">
+        <div class="hud-speed-num" id="p2-speed">0</div>
+        <div class="hud-speed-unit">KM/H</div>
+      </div>
+      <div class="hud-gear-row">
+        <div class="hud-gear-label">GEAR</div>
+        <div class="hud-gear-num" id="p2-gear">1</div>
+      </div>
+      <div class="hud-rpm-track">
+        <div class="hud-rpm-fill" id="p2-rpm"></div>
+      </div>
+      <div class="hud-tilt">
+        <div class="tilt-label">TILT</div>
+        <div class="tilt-track">
+          <div class="tilt-cursor" id="p2-tilt-cursor"></div>
+        </div>
+      </div>
+      <div class="hud-feedback">
+        <div class="feedback-pill tilt-l" id="p2-pill-tiltl">◀ TILT</div>
+        <div class="feedback-pill tilt-r" id="p2-pill-tiltr">TILT ▶</div>
+        <div class="feedback-pill rumble" id="p2-pill-rumble">RUMBLE</div>
+        <div class="feedback-pill bump"   id="p2-pill-bump">BUMP</div>
+      </div>
+    </div>
+
+    <!-- LAP NOTIFICATIONS -->
+    <div class="lap-notif p1" id="lap-notif-p1">
+      <div class="lap-notif-text" id="lap-notif-p1-text">LAP COMPLETE</div>
+      <div class="lap-notif-time" id="lap-notif-p1-time"></div>
+    </div>
+    <div class="lap-notif p2" id="lap-notif-p2">
+      <div class="lap-notif-text" id="lap-notif-p2-text">LAP COMPLETE</div>
+      <div class="lap-notif-time" id="lap-notif-p2-time"></div>
+    </div>
+
+    <!-- MINIMAP -->
+    <div id="minimap">
+      <canvas id="minimap-canvas" width="200" height="200"></canvas>
+    </div>
+
+  </div><!-- end hud -->
+
+  <!-- COUNTDOWN -->
+  <div id="countdown">
+    <div class="countdown-num" id="countdown-num">3</div>
+  </div>
+
+  <!-- START / END OVERLAY -->
+  <div id="overlay">
+    <div class="overlay-box" id="overlay-content">
+
+      <!-- START SCREEN (default) -->
+      <div id="screen-start">
+        <div class="overlay-title">MOTO<br>DUEL</div>
+        <div class="overlay-sub">CUSTOM MOUSE CONTROLLER · SPLIT SCREEN</div>
+
+        <div class="controls-grid">
+          <div class="ctrl-col">
+            <div class="ctrl-col-title p1">PLAYER 1</div>
+            <div class="ctrl-row"><span class="kbd">W</span> 油門</div>
+            <div class="ctrl-row"><span class="kbd">S</span> 煞車</div>
+            <div class="ctrl-row"><span class="kbd">A D</span> 轉向</div>
+            <div class="ctrl-row"><span class="kbd">滑鼠</span> 視角</div>
+            <div class="ctrl-row"><span class="kbd">E</span> 升檔</div>
+            <div class="ctrl-row"><span class="kbd">Q</span> 降檔</div>
+          </div>
+          <div class="ctrl-col">
+            <div class="ctrl-col-title p2">PLAYER 2</div>
+            <div class="ctrl-row"><span class="kbd">↑</span> 油門</div>
+            <div class="ctrl-row"><span class="kbd">↓</span> 煞車</div>
+            <div class="ctrl-row"><span class="kbd">J L</span> 轉向(鍵盤)</div>
+            <div class="ctrl-row"><span class="kbd">第二顆滑鼠</span> 轉向(HID)</div>
+            <div class="ctrl-row"><span class="kbd">P</span> 升檔</div>
+            <div class="ctrl-row"><span class="kbd">O</span> 降檔</div>
+          </div>
+        </div>
+
+        <div id="hid-section" style="margin: 18px 0; text-align: center;">
+          <button class="start-btn" id="hid-btn" type="button"
+                  style="font-size: 14px; padding: 10px 20px; background:#444;"
+                  onclick="connectP2Mouse()">
+            <span>🖱 啟用 P2 第二顆實體滑鼠 (WebHID)</span>
+          </button>
+          <div id="hid-status" style="margin-top: 10px; font-size: 13px; color:#aaa; min-height: 1.2em;">
+            P2 預設使用鍵盤 J/L 轉向。點上方按鈕可指定一顆 USB 滑鼠給 P2 專用。
+          </div>
+        </div>
+
+        <button class="start-btn" id="start-btn" onclick="startGame()">
+          <span>START ENGINE</span>
+        </button>
+      </div>
+
+      <!-- WIN SCREEN (hidden initially) -->
+      <div id="screen-win" style="display:none;">
+        <div class="overlay-sub">RACE FINISHED</div>
+        <div class="winner-name" id="win-name">P1 WINS</div>
+        <div class="lap-times-table" id="win-times"></div>
+        <button class="start-btn" id="restart-btn" onclick="restartGame()">
+          <span>RACE AGAIN</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- end game-wrapper -->
+
+<!-- THREE.JS CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- GAME MODULES (load order matters) -->
+<script src="track.js"></script>
+<script src="bike.js"></script>
+<script src="camera.js"></script>
+<script src="input-hid.js"></script>
+<script src="input.js"></script>
+<script src="feedback.js"></script>
+<script src="hud.js"></script>
+<script src="main.js"></script>
+
+<!-- P2 WebHID 連線按鈕 handler -->
+<script>
+  async function connectP2Mouse() {
+    const btn    = document.getElementById('hid-btn');
+    const status = document.getElementById('hid-status');
+
+    if (!InputHID.supported()) {
+      status.style.color = '#ff6666';
+      status.textContent = '❌ 此瀏覽器不支援 WebHID。請用 Chrome / Edge / Arc，且頁面要是 https 或 localhost。';
+      return;
+    }
+
+    if (InputHID.isActive()) {
+      // 再按一次 = 解除
+      await InputHID.disconnect();
+      btn.querySelector('span').textContent = '🖱 啟用 P2 第二顆實體滑鼠 (WebHID)';
+      status.style.color = '#aaa';
+      status.textContent = '已解除。P2 回到鍵盤 J/L 轉向。';
+      return;
+    }
+
+    try {
+      const info = await InputHID.connect();
+      btn.querySelector('span').textContent = '🔌 解除 P2 實體滑鼠';
+      status.style.color = '#00E676';
+      status.textContent = '✅ 已連接：' + info.productName +
+        '  (VID ' + info.vendorId.toString(16) + ' / PID ' + info.productId.toString(16) + ')';
+    } catch (err) {
+      status.style.color = '#ff6666';
+      status.textContent = '❌ ' + (err.message || err);
+    }
+  }
+</script>
+
+</body>
+</html>
