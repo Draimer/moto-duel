@@ -43,6 +43,7 @@
     <!-- WRONG WAY -->
     <div class="wrong-way p1" id="p1-wrongway">WRONG WAY</div>
     <div class="wrong-way p2" id="p2-wrongway">WRONG WAY</div>
+    <div id="system-msg">SYSTEM</div>
 
     <!-- BOTTOM HUD PANELS -->
     <div class="hud-panel p1" id="hud-p1">
@@ -135,31 +136,35 @@
         <div class="controls-grid">
           <div class="ctrl-col">
             <div class="ctrl-col-title p1">PLAYER 1</div>
-            <div class="ctrl-row"><span class="kbd">W</span> 油門</div>
-            <div class="ctrl-row"><span class="kbd">S</span> 煞車</div>
-            <div class="ctrl-row"><span class="kbd">A D</span> 轉向</div>
-            <div class="ctrl-row"><span class="kbd">滑鼠</span> 視角</div>
-            <div class="ctrl-row"><span class="kbd">E</span> 升檔</div>
-            <div class="ctrl-row"><span class="kbd">Q</span> 降檔</div>
+            <div class="ctrl-row"><span class="kbd">↑</span> 油門</div>
+            <div class="ctrl-row"><span class="kbd">↓</span> 煞車</div>
+            <div class="ctrl-row"><span class="kbd">滑鼠</span> 轉向</div>
+            <div class="ctrl-row"><span class="kbd">→</span> 升檔</div>
+            <div class="ctrl-row"><span class="kbd">←</span> 降檔</div>
+            <div class="ctrl-row"><span class="kbd">R</span> 卡牆重置</div>
           </div>
           <div class="ctrl-col">
             <div class="ctrl-col-title p2">PLAYER 2</div>
-            <div class="ctrl-row"><span class="kbd">↑</span> 油門</div>
-            <div class="ctrl-row"><span class="kbd">↓</span> 煞車</div>
+            <div class="ctrl-row"><span class="kbd">W</span> 油門</div>
+            <div class="ctrl-row"><span class="kbd">S</span> 煞車</div>
             <div class="ctrl-row"><span class="kbd">J L</span> 轉向(鍵盤)</div>
             <div class="ctrl-row"><span class="kbd">第二顆滑鼠</span> 轉向(HID)</div>
-            <div class="ctrl-row"><span class="kbd">P</span> 升檔</div>
-            <div class="ctrl-row"><span class="kbd">O</span> 降檔</div>
+            <div class="ctrl-row"><span class="kbd">D</span> 升檔</div>
+            <div class="ctrl-row"><span class="kbd">A</span> 降檔</div>
+            <div class="ctrl-row"><span class="kbd">U</span> 卡牆重置</div>
           </div>
         </div>
+        <div class="ctrl-row ctrl-row-center">
+          <span class="kbd">ESC</span>&nbsp;暫停 / 繼續
+        </div>
 
-        <div id="hid-section" style="margin: 18px 0; text-align: center;">
+        <div id="hid-section" class="hid-section">
           <button class="start-btn" id="hid-btn" type="button"
-                  style="font-size: 14px; padding: 10px 20px; background:#444;"
+                  style="font-size: 14px; padding: 10px 20px;"
                   onclick="connectP2Mouse()">
             <span>🖱 啟用 P2 第二顆實體滑鼠 (WebHID)</span>
           </button>
-          <div id="hid-status" style="margin-top: 10px; font-size: 13px; color:#aaa; min-height: 1.2em;">
+          <div id="hid-status">
             P2 預設使用鍵盤 J/L 轉向。點上方按鈕可指定一顆 USB 滑鼠給 P2 專用。
           </div>
         </div>
@@ -179,6 +184,36 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- PAUSE MENU -->
+  <div id="pause-menu">
+    <div class="pause-card">
+      <div class="pause-title">PAUSED</div>
+      <button class="start-btn" id="btn-resume" type="button"><span>RESUME</span></button>
+      <button class="start-btn" id="btn-open-settings" type="button"><span>SETTINGS</span></button>
+      <button class="start-btn" id="btn-exit-menu" type="button"><span>BACK TO MENU</span></button>
+    </div>
+  </div>
+
+  <!-- SETTINGS PANEL -->
+  <div id="settings-panel">
+    <div class="settings-card">
+      <div class="pause-title">SETTINGS</div>
+      <label class="setting-row">
+        <span>自動重置</span>
+        <input type="checkbox" id="opt-auto-reset" checked />
+      </label>
+      <label class="setting-row">
+        <span>逆向自動重置秒數 <em id="opt-wrongway-val">3.6s</em></span>
+        <input type="range" id="opt-wrongway" min="2" max="8" step="0.2" value="3.6" />
+      </label>
+      <label class="setting-row">
+        <span>卡牆自動重置秒數 <em id="opt-stuck-val">2.6s</em></span>
+        <input type="range" id="opt-stuck" min="1.2" max="6" step="0.2" value="2.6" />
+      </label>
+      <button class="start-btn" id="settings-close" type="button"><span>CLOSE</span></button>
     </div>
   </div>
 

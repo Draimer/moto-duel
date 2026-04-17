@@ -300,6 +300,12 @@ html, body {
   align-items: center;
   gap: 20px;
   text-align: center;
+  width: min(860px, 94vw);
+  padding: 28px 30px 24px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(19,22,28,0.95), rgba(8,10,12,0.9));
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 0 50px rgba(0,207,255,0.04);
 }
 
 .overlay-title {
@@ -324,18 +330,24 @@ html, body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
-  margin: 8px 0;
+  margin: 10px 0 4px;
+  width: 100%;
 }
 .ctrl-col {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
+  text-align: left;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 .ctrl-col-title {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 4px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .ctrl-col-title.p1 { color: var(--p1-color); }
 .ctrl-col-title.p2 { color: var(--p2-color); }
@@ -344,33 +356,39 @@ html, body {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
-  color: #666;
+  font-size: 12px;
+  color: #b7b7b7;
+}
+.ctrl-row-center {
+  justify-content: center;
+  margin-top: 8px;
 }
 .kbd {
-  background: #111;
-  border: 1px solid #2a2a2a;
-  border-bottom: 3px solid #1a1a1a;
-  border-radius: 3px;
-  padding: 3px 10px;
+  background: linear-gradient(180deg, #171b20, #0f1114);
+  border: 1px solid #2e3d4a;
+  border-bottom: 3px solid #1f2a34;
+  border-radius: 6px;
+  padding: 4px 10px;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: #999;
+  color: #cde6f3;
   min-width: 32px;
   text-align: center;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.35);
 }
 
 .start-btn {
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 6px;
-  background: transparent;
+  letter-spacing: 5px;
+  background: rgba(255,255,255,0.03);
   color: #fff;
-  border: 2px solid #fff;
+  border: 1px solid rgba(255,255,255,0.8);
+  border-radius: 8px;
   padding: 16px 52px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.18s;
   position: relative;
   overflow: hidden;
 }
@@ -384,8 +402,26 @@ html, body {
   transition: transform 0.2s ease;
 }
 .start-btn:hover::before { transform: scaleX(1); }
-.start-btn:hover { color: #000; }
+.start-btn:hover {
+  color: #000;
+  box-shadow: 0 0 24px rgba(255,255,255,0.28);
+}
 .start-btn span { position: relative; z-index: 1; }
+
+.hid-section {
+  margin: 18px 0;
+  text-align: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+#hid-status {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #aaa;
+  min-height: 1.2em;
+}
 
 /* Winner screen */
 .winner-name {
@@ -491,3 +527,80 @@ html, body {
 }
 .wrong-way.p1 { left: 0; }
 .wrong-way.p2 { left: 50%; }
+
+#system-msg {
+  position: absolute;
+  left: 50%;
+  top: 20%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: #FFD700;
+  text-shadow: 0 0 12px rgba(255,215,0,0.7);
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255,215,0,0.4);
+  padding: 10px 16px;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 85;
+}
+
+#pause-menu,
+#settings-panel {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.68);
+  z-index: 95;
+}
+
+.pause-card,
+.settings-card {
+  width: min(500px, 88vw);
+  padding: 28px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(180deg, rgba(17,22,30,0.95), rgba(10,10,10,0.94));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  border-radius: 12px;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.45);
+}
+
+.pause-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: 6px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.setting-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: #ccc;
+  text-align: left;
+}
+
+.setting-row input[type="range"] {
+  accent-color: #00CFFF;
+}
+
+.setting-row input[type="checkbox"] {
+  accent-color: #00CFFF;
+  transform: scale(1.1);
+}
+
+.setting-row em {
+  color: #fff;
+  font-style: normal;
+}

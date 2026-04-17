@@ -100,6 +100,7 @@ const Input = (() => {
       steerTrackSpeed: STEER_TRACK_BASE * (1 - speedNorm) + STEER_TRACK_MIN * speedNorm,
       shiftUp,
       shiftDown,
+      reset: false,
     };
   }
 
@@ -147,6 +148,8 @@ const Input = (() => {
 
     p2.targetAngleOffset = _mouseToSteerOffset(p2x, speedNorm2);
     p2.steer             = (p2x - 0.5) * 2.0;
+    p1.reset             = _edge('KeyR');
+    p2.reset             = _edge('KeyU');
 
     for (const k in keys) prevKeys[k] = keys[k];
 
