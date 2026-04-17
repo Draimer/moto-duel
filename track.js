@@ -38,8 +38,8 @@ const Track = (() => {
     [ -0.42, -0.62 ],  // 17  Club 入彎
     [ -0.12, -0.65 ],  // 18  Club 頂點 (緊右彎)
     [  0.18, -0.58 ],  // 19  Club 出彎 / Luffield
-    [  0.42, -0.38 ],  // 20  Woodcote (快速右彎)
-    [  0.60, -0.12 ],  // 21  回主直線入口
+    [  0.66, -0.34 ],  // 20  Woodcote (外拋更大，避開路段重疊)
+    [  0.72,  0.10 ],  // 21  回主直線入口（抬高接回主直線，避免交叉）
   ];
 
   // Silverstone 地形平坦，不需高低差
@@ -343,7 +343,7 @@ const Track = (() => {
     for (let i = 0; i < ARROW_COUNT; i++) {
       const t   = i / ARROW_COUNT;
       const p   = trackCurve.getPoint(t);
-      const tan = trackCurve.getTangent(t).normalize();
+      const tan = getForwardTangent(t);
 
       // 用水平 tangent 計算穩定的左右方向（與 computeFrenetFrames 同邏輯）
       const up     = new THREE.Vector3(0, 1, 0);
@@ -387,33 +387,35 @@ const Track = (() => {
     }
 
     [-1, 1].forEach(sign => {
-      let pos = [], idx = [], vertCount = 0;
+      const pos = [];
+      const idx = [];
 
-      function flushChunk() {
-        if (vertCount < 2) { pos = []; idx = []; vertCount = 0; return; }
-        const geo = new THREE.BufferGeometry();
-        geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-        geo.setIndex(idx);
-        geo.computeVertexNormals();
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.renderOrder = 7;
-        scene.add(mesh);
-        pos = []; idx = []; vertCount = 0;
-      }
-
-      for (let i = 0; i <= SEG; i++) {
-        const t = i / SEG;
-        if (isSkippedT(t)) { flushChunk(); continue; }
+      for (let i = 0; i < SEG; i++) {
         const p = pts[i].clone().addScaledVector(frames.binormals[i], sign * GAP);
-        pos.push(p.x, p.y + 0.02,          p.z);
+        pos.push(p.x, p.y + 0.02, p.z);
         pos.push(p.x, p.y + WALL_H + 0.02, p.z);
-        if (vertCount > 0) {
-          const a = (vertCount - 1) * 2;
-          idx.push(a, a+1, a+2,  a+1, a+3, a+2);
-        }
-        vertCount++;
       }
-      flushChunk();
+
+      for (let i = 0; i < SEG; i++) {
+        const tA = i / SEG;
+        const tB = ((i + 1) % SEG) / SEG;
+        if (isSkippedT(tA) || isSkippedT(tB)) continue;
+
+        const a = i * 2;
+        const b = i * 2 + 1;
+        const c = ((i + 1) % SEG) * 2;
+        const d = ((i + 1) % SEG) * 2 + 1;
+        idx.push(a, b, c,  b, d, c);
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geo.setIndex(idx);
+      geo.computeVertexNormals();
+
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.renderOrder = 7;
+      scene.add(mesh);
     });
   }
 
@@ -708,12 +710,20 @@ const Track = (() => {
 
   function getTrackYAt(t)     { return trackCurve.getPoint(t).y; }
   function isBumpZone(segIdx) { return BUMP_SEGMENTS.includes(segIdx); }
+  function getForwardTangent(t) {
+    if (!trackCurve) return new THREE.Vector3(0, 0, 1);
+    const wrappedT = ((t % 1) + 1) % 1;
+    const tan = trackCurve.getTangent(wrappedT).clone();
+    tan.y = 0;
+    if (tan.lengthSq() < 1e-8) return new THREE.Vector3(0, 0, 1);
+    return tan.normalize();
+  }
 
   // ═══════════════════════════════════════════════════════════════
   //  PUBLIC API
   // ═══════════════════════════════════════════════════════════════
   return {
-    build, getNearestT, getTrackYAt, isBumpZone,
+    build, getNearestT, getTrackYAt, isBumpZone, getForwardTangent,
     get curve()       { return trackCurve; },
     get checkpoints() { return checkpoints; },
     get width()       { return TRACK_WIDTH; },

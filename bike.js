@@ -298,7 +298,7 @@ const Bike = (() => {
     state.position.x += Math.sin(state.angle) * state.speed * dt;
     state.position.z += Math.cos(state.angle) * state.speed * dt;
 
-    // Elevation  ─ 用上一幀的 trackT 當提示，避免 figure-8 交會處跳到錯的 T
+    // Elevation  ─ 用上一幀的 trackT 當提示，避免鄰近路段時跳到錯的 T
     const nearT  = Track.getNearestT(state.position, state.trackT);
     const trackY = Track.getTrackYAt(nearT);
     state.position.y += (trackY - state.position.y) * Math.min(1, dt * 12);

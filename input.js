@@ -12,13 +12,8 @@ const Input = (() => {
   // 進入遊戲自動鎖定游標，用 movementX 相對位移累積虛擬 X
   let mouseVirtualX    = 0.5;   // 0 = 最左, 1 = 最右
   let mouseActive      = false; // pointer lock 是否已鎖定
-  const MOUSE_SENSITIVITY = 1 / 350;  // 每 px 的轉向量（越大越靈敏）
+  const MOUSE_SENSITIVITY = 1 / 390;  // 每 px 的轉向量（越大越靈敏）— 微幅降敏
   const MOUSE_RECENTER    = 0.05;     // 靜止時每幀回正力道
-
-  // ── P2 鍵盤轉向（J/L，bridge 未連線時）──────────────────────
-  let p2KeySteerX      = 0.5;
-  const P2_KEY_SPEED   = 0.05;
-  const P2_KEY_RECENTER = 0.08;
 
   // ── 請求 Pointer Lock（需從使用者事件呼叫）──────────────────
   function requestPointerLock() {
@@ -133,15 +128,9 @@ const Input = (() => {
       mouseVirtualX += (0.5 - mouseVirtualX) * MOUSE_RECENTER;
     }
 
-    // P2：鍵盤 J/L 累積，bridge 未連線時生效
-    if (!_bridgeActive('p2')) {
-      if      (keys['KeyJ']) p2KeySteerX = Math.max(0, p2KeySteerX - P2_KEY_SPEED);
-      else if (keys['KeyL']) p2KeySteerX = Math.min(1, p2KeySteerX + P2_KEY_SPEED);
-      else                   p2KeySteerX += (0.5 - p2KeySteerX) * P2_KEY_RECENTER;
-    }
-
     const p1x = _bridgeActive('p1') ? _bridgeGetX('p1') : mouseVirtualX;
-    const p2x = _bridgeActive('p2') ? _bridgeGetX('p2') : p2KeySteerX;
+    // P2 強制依賴 bridge；未連線時保持直行，不提供鍵盤轉向 fallback
+    const p2x = _bridgeActive('p2') ? _bridgeGetX('p2') : 0.5;
 
     p1.targetAngleOffset = _mouseToSteerOffset(p1x, speedNorm1);
     p1.steer             = (p1x - 0.5) * 2.0;

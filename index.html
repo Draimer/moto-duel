@@ -10,21 +10,16 @@
 
 <div id="game-wrapper">
 
-  <!-- THREE.JS RENDER CANVASES -->
   <canvas id="canvas-p1"></canvas>
   <canvas id="canvas-p2"></canvas>
 
-  <!-- CENTER SPLIT LINE -->
   <div id="divider"></div>
 
-  <!-- IMPACT FLASHES -->
   <div class="impact-flash" id="flash-p1"></div>
   <div class="impact-flash" id="flash-p2"></div>
 
-  <!-- HUD -->
   <div id="hud">
 
-    <!-- TOP: Lap / Time per player -->
     <div class="hud-top p1">
       <div class="hud-lap" id="p1-lap">LAP 1 / 5</div>
       <div class="hud-time" id="p1-time">00:00.000</div>
@@ -36,23 +31,18 @@
       <div class="hud-best" id="p2-best">BEST: --:--.---</div>
     </div>
 
-    <!-- POSITION BANNERS -->
     <div class="pos-banner p1">POSITION <span class="pos-val" id="p1-pos">P1</span></div>
     <div class="pos-banner p2">POSITION <span class="pos-val" id="p2-pos">P2</span></div>
 
-    <!-- WRONG WAY -->
     <div class="wrong-way p1" id="p1-wrongway">WRONG WAY</div>
     <div class="wrong-way p2" id="p2-wrongway">WRONG WAY</div>
     <div id="system-msg">SYSTEM</div>
 
-    <!-- BOTTOM HUD PANELS -->
     <div class="hud-panel p1" id="hud-p1">
-      <!-- Speed -->
       <div class="hud-speed">
         <div class="hud-speed-num" id="p1-speed">0</div>
         <div class="hud-speed-unit">KM/H</div>
       </div>
-      <!-- Gear + RPM -->
       <div class="hud-gear-row">
         <div class="hud-gear-label">GEAR</div>
         <div class="hud-gear-num" id="p1-gear">1</div>
@@ -60,14 +50,12 @@
       <div class="hud-rpm-track">
         <div class="hud-rpm-fill" id="p1-rpm"></div>
       </div>
-      <!-- Tilt visualizer -->
       <div class="hud-tilt">
         <div class="tilt-label">TILT</div>
         <div class="tilt-track">
           <div class="tilt-cursor" id="p1-tilt-cursor"></div>
         </div>
       </div>
-      <!-- Feedback pills -->
       <div class="hud-feedback">
         <div class="feedback-pill tilt-l" id="p1-pill-tiltl">◀ TILT</div>
         <div class="feedback-pill tilt-r" id="p1-pill-tiltr">TILT ▶</div>
@@ -102,7 +90,6 @@
       </div>
     </div>
 
-    <!-- LAP NOTIFICATIONS -->
     <div class="lap-notif p1" id="lap-notif-p1">
       <div class="lap-notif-text" id="lap-notif-p1-text">LAP COMPLETE</div>
       <div class="lap-notif-time" id="lap-notif-p1-time"></div>
@@ -112,23 +99,17 @@
       <div class="lap-notif-time" id="lap-notif-p2-time"></div>
     </div>
 
-    <!-- MINIMAP -->
     <div id="minimap">
       <canvas id="minimap-canvas" width="200" height="200"></canvas>
     </div>
 
-  </div><!-- end hud -->
-
-  <!-- COUNTDOWN -->
-  <div id="countdown">
+  </div><div id="countdown">
     <div class="countdown-num" id="countdown-num">3</div>
   </div>
 
-  <!-- START / END OVERLAY -->
   <div id="overlay">
     <div class="overlay-box" id="overlay-content">
 
-      <!-- START SCREEN (default) -->
       <div id="screen-start">
         <div class="overlay-title">MOTO<br>DUEL</div>
         <div class="overlay-sub">CUSTOM MOUSE CONTROLLER · SPLIT SCREEN</div>
@@ -147,8 +128,7 @@
             <div class="ctrl-col-title p2">PLAYER 2</div>
             <div class="ctrl-row"><span class="kbd">W</span> 油門</div>
             <div class="ctrl-row"><span class="kbd">S</span> 煞車</div>
-            <div class="ctrl-row"><span class="kbd">J L</span> 轉向(鍵盤)</div>
-            <div class="ctrl-row"><span class="kbd">第二顆滑鼠</span> 轉向(HID)</div>
+            <div class="ctrl-row"><span class="kbd">第二顆滑鼠</span> 轉向 (Bridge 必要)</div>
             <div class="ctrl-row"><span class="kbd">D</span> 升檔</div>
             <div class="ctrl-row"><span class="kbd">A</span> 降檔</div>
             <div class="ctrl-row"><span class="kbd">U</span> 卡牆重置</div>
@@ -162,10 +142,10 @@
           <button class="start-btn" id="hid-btn" type="button"
                   style="font-size: 14px; padding: 10px 20px;"
                   onclick="connectP2Mouse()">
-            <span>🖱 啟用 P2 第二顆實體滑鼠 (WebHID)</span>
+            <span>🖱 啟用 P2 第二顆實體滑鼠 (MouseBridge)</span>
           </button>
           <div id="hid-status">
-            P2 預設使用鍵盤 J/L 轉向。點上方按鈕可指定一顆 USB 滑鼠給 P2 專用。
+            P2 轉向必須透過 MouseBridge 第二顆滑鼠。請先啟動本機 MouseBridge 後再按上方按鈕。
           </div>
         </div>
 
@@ -174,7 +154,6 @@
         </button>
       </div>
 
-      <!-- WIN SCREEN (hidden initially) -->
       <div id="screen-win" style="display:none;">
         <div class="overlay-sub">RACE FINISHED</div>
         <div class="winner-name" id="win-name">P1 WINS</div>
@@ -187,7 +166,6 @@
     </div>
   </div>
 
-  <!-- PAUSE MENU -->
   <div id="pause-menu">
     <div class="pause-card">
       <div class="pause-title">PAUSED</div>
@@ -197,7 +175,6 @@
     </div>
   </div>
 
-  <!-- SETTINGS PANEL -->
   <div id="settings-panel">
     <div class="settings-card">
       <div class="pause-title">SETTINGS</div>
@@ -217,12 +194,8 @@
     </div>
   </div>
 
-</div><!-- end game-wrapper -->
+</div><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-<!-- THREE.JS CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-<!-- GAME MODULES (load order matters) -->
 <script src="track.js"></script>
 <script src="bike.js"></script>
 <script src="camera.js"></script>
@@ -232,7 +205,6 @@
 <script src="hud.js"></script>
 <script src="main.js"></script>
 
-<!-- P2 WebHID 連線按鈕 handler -->
 <script>
   async function connectP2Mouse() {
     const btn    = document.getElementById('hid-btn');
@@ -240,16 +212,16 @@
 
     if (!InputHID.supported()) {
       status.style.color = '#ff6666';
-      status.textContent = '❌ 此瀏覽器不支援 WebHID。請用 Chrome / Edge / Arc，且頁面要是 https 或 localhost。';
+      status.textContent = '❌ 目前環境不支援本機橋接（WebSocket）。請確認瀏覽器允許 ws://127.0.0.1 連線。';
       return;
     }
 
     if (InputHID.isActive()) {
       // 再按一次 = 解除
       await InputHID.disconnect();
-      btn.querySelector('span').textContent = '🖱 啟用 P2 第二顆實體滑鼠 (WebHID)';
+      btn.querySelector('span').textContent = '🖱 啟用 P2 第二顆實體滑鼠 (MouseBridge)';
       status.style.color = '#aaa';
-      status.textContent = '已解除。P2 回到鍵盤 J/L 轉向。';
+      status.textContent = '已解除。P2 暫時無法轉向，請重新連接 MouseBridge。';
       return;
     }
 
@@ -257,7 +229,7 @@
       const info = await InputHID.connect();
       btn.querySelector('span').textContent = '🔌 解除 P2 實體滑鼠';
       status.style.color = '#00E676';
-      status.textContent = '✅ 已連接：' + info.productName +
+      status.textContent = '✅ MouseBridge 已連接：' + info.productName +
         '  (VID ' + info.vendorId.toString(16) + ' / PID ' + info.productId.toString(16) + ')';
     } catch (err) {
       status.style.color = '#ff6666';
