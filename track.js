@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
-//  track.js  —  Silverstone GP circuit (simplified classic layout)
-//  22 control points · clockwise · flat terrain
+//  track.js  —  Monza-inspired circuit (high-speed + chicanes)
+//  30 control points · clockwise · flat terrain
 //
 //  [FIX] computeFrenetFrames 強制鎖定 Y 軸向上，解決扭轉破圖
 //  [FIX] getNearestT 局部搜尋快取，避免跳圈
@@ -9,40 +9,48 @@
 
 const Track = (() => {
 
-  // ── Silverstone GP — 22 控制點，順時鐘行進 ───────────────────
+  // ── Monza 風格賽道 — 30 控制點，順時鐘行進 ───────────────────
   // 座標已正規化至 -1…+1，再乘 TRACK_SCALE
   //
-  //   右側直線 (Wellington/Pit Straight) → 右上 Copse (右彎)
-  //   → 上方 Maggotts / Becketts / Chapel (S 形彎) → Hangar Straight (往左)
-  //   → 左側 Stowe (右彎) → Vale (左彎) → Club (緊右彎)
-  //   → Woodcote / Luffield → 回主直線
+  //   主直線 → Variante del Rettifilo (T1/T2 減速彎)
+  //   → Curva Grande 長弧 → Variante della Roggia
+  //   → Lesmo 1 / Lesmo 2 → Serraglio 直線
+  //   → Ascari 複合彎 → Parabolica 長右彎回主直線
   //
   const RAW_XZ = [
-    [  0.62,  0.62 ],  //  0  Start / Finish  (Wellington Straight 底部)
-    [  0.62,  0.28 ],  //  1  Wellington Straight
-    [  0.62, -0.05 ],  //  2  Straight 末段，接近 Copse
-    [  0.50, -0.30 ],  //  3  Copse 入彎 (快速右彎)
-    [  0.28, -0.44 ],  //  4  Copse 頂點
-    [  0.08, -0.50 ],  //  5  Maggotts 接近段
-    [ -0.05, -0.36 ],  //  6  Maggotts (快速左切)
-    [  0.08, -0.20 ],  //  7  Becketts S1 (右)
-    [ -0.06, -0.04 ],  //  8  Becketts S2 (左)
-    [  0.06,  0.13 ],  //  9  Chapel (右)
-    [ -0.10,  0.28 ],  // 10  Hangar Straight 起點
-    [ -0.40,  0.30 ],  // 11  Hangar Straight 中段
-    [ -0.60,  0.28 ],  // 12  Stowe 入彎
-    [ -0.68,  0.10 ],  // 13  Stowe 頂點 (右彎)
-    [ -0.62, -0.10 ],  // 14  Stowe 出彎
-    [ -0.56, -0.32 ],  // 15  Vale 接近段
-    [ -0.58, -0.50 ],  // 16  Vale (左彎)
-    [ -0.42, -0.62 ],  // 17  Club 入彎
-    [ -0.12, -0.65 ],  // 18  Club 頂點 (緊右彎)
-    [  0.18, -0.58 ],  // 19  Club 出彎 / Luffield
-    [  0.66, -0.34 ],  // 20  Woodcote (外拋更大，避開路段重疊)
-    [  0.72,  0.10 ],  // 21  回主直線入口（抬高接回主直線，避免交叉）
+    [  0.54,  0.62 ],  //  0  Start / Finish
+    [  0.56,  0.35 ],  //  1  主直線
+    [  0.57,  0.02 ],  //  2  主直線中段
+    [  0.58, -0.34 ],  //  3  主直線末端高速
+    [  0.56, -0.62 ],  //  4  T1 煞車點
+    [  0.42, -0.70 ],  //  5  Rettifilo 右切
+    [  0.22, -0.62 ],  //  6  Rettifilo 左切
+    [  0.30, -0.48 ],  //  7  Chicane 出口
+    [  0.18, -0.36 ],  //  8  Curva Grande 入
+    [ -0.02, -0.24 ],  //  9  Curva Grande 中
+    [ -0.26, -0.20 ],  // 10  Curva Grande 後段
+    [ -0.50, -0.28 ],  // 11  Roggia 接近
+    [ -0.72, -0.42 ],  // 12  Roggia 右切
+    [ -0.60, -0.54 ],  // 13  Roggia 左切
+    [ -0.42, -0.46 ],  // 14  Roggia 出口
+    [ -0.28, -0.35 ],  // 15  Lesmo 1 進彎
+    [ -0.16, -0.24 ],  // 16  Lesmo 1 出口
+    [ -0.26, -0.10 ],  // 17  Lesmo 2 入彎
+    [ -0.42,  0.06 ],  // 18  Lesmo 2 出彎
+    [ -0.40,  0.24 ],  // 19  Serraglio 起點
+    [ -0.20,  0.36 ],  // 20  Serraglio 中段
+    [  0.06,  0.34 ],  // 21  Serraglio 末端
+    [  0.28,  0.22 ],  // 22  Ascari 煞車點
+    [  0.40,  0.08 ],  // 23  Ascari 右
+    [  0.48, -0.06 ],  // 24  Ascari 左
+    [  0.34, -0.18 ],  // 25  Ascari 右出口
+    [  0.16, -0.08 ],  // 26  Parabolica 入彎
+    [  0.04,  0.10 ],  // 27  Parabolica 內側
+    [  0.08,  0.34 ],  // 28  Parabolica 持續給油
+    [  0.30,  0.56 ],  // 29  Parabolica 出彎接主直線
   ];
 
-  // Silverstone 地形平坦，不需高低差
+  // Monza 風格同樣以平地為主，不做高低差
   const ELEVATION = new Array(RAW_XZ.length).fill(0);
 
   const TRACK_SCALE     = 520;
@@ -51,7 +59,7 @@ const Track = (() => {
   const ROAD_LIFT       = 0.08;
   const ROAD_DECAL_LIFT = ROAD_LIFT + 0.03;
   const TOTAL_LAPS      = 5;
-  const BUMP_SEGMENTS   = [27, 28, 29];  // Club 出口路面較顛簸
+  const BUMP_SEGMENTS   = [11, 12, 13, 24];  // Chicane 區域顛簸感較強
 
   const BARRIER_SKIP_RANGES = [];  // 無立交橋，全段都有護欄
   const BARRIER_HEIGHT = 0.55;
