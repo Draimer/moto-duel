@@ -1,0 +1,76 @@
+{
+  "name": "moto-duel",
+  "version": "1.0.0",
+  "description": "Moto Duel - Electron desktop wrapper for the web racing game",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "pack": "electron-builder --dir",
+    "build": "electron-builder --win --x64",
+    "dist": "electron-builder --win --x64"
+  },
+  "author": "yunkeda",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.yunkeda.motoduel",
+    "productName": "MotoDuel",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron-main.js",
+      "index.html",
+      "style.css",
+      "main.js",
+      "track.js",
+      "bike.js",
+      "camera.js",
+      "hud.js",
+      "audio.js",
+      "feedback.js",
+      "input.js",
+      "input-hid.js",
+      "music.mp3",
+      "icon.ico",
+      "launch-hidden.vbs",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "launch-hidden.vbs"
+    ],
+    "extraResources": [
+      {
+        "from": "MouseBridge/MouseBridge/bin",
+        "to": "MouseBridge/bin",
+        "filter": [
+          "**/net8.0-windows/**/*",
+          "!**/*.pdb"
+        ]
+      }
+    ],
+    "win": {
+      "icon": "icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "installerHeaderIcon": "icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MotoDuel"
+    }
+  }
+}

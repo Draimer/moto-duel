@@ -1,148 +1,157 @@
-// ═══════════════════════════════════════════════════════════════
-//  input-hid.js  —  Local bridge input for two independent mice
-// ═══════════════════════════════════════════════════════════════
-
 const InputBridge = (() => {
   let ws = null;
   let isConnecting = false;
-  let pendingDevicesResolver = null;
-  let pendingDevicesRejecter = null;
+  let connectPromise = null;
+  let pendingDevicesRequest = null;
+  let pendingDevicesRequestId = 0;
+  let currentBindPromise = null;
+  const pendingBindRequests = new Map();
+  const bridgeDebug = {
+    p1: null,
+    p2: null,
+  };
 
   const WS_URL = 'ws://127.0.0.1:8765';
+  const AXIS_LOCK_RATIO = 1.35;
+  const AXIS_NOISE_FLOOR = 1;
 
   const players = {
     p1: {
       active: false,
       deviceId: null,
       productName: null,
-      virtualX: 0.5,
-      sensitivity: 1 / 150, // 提高靈敏度
-      recenterPerFrame: 0,
+      axis: 0,
+      sensitivity: 1 / 75,
     },
     p2: {
       active: false,
       deviceId: null,
       productName: null,
-      virtualX: 0.5,
-      sensitivity: 1 / 150, // 提高靈敏度
-      recenterPerFrame: 0,
+      axis: 0,
+      sensitivity: 1 / 75,
     },
   };
+
+  function _clampAxis(v) {
+    if (!Number.isFinite(v)) return 0;
+    if (v < -1) return -1;
+    if (v > 1) return 1;
+    return v;
+  }
 
   function supported() {
     return typeof WebSocket !== 'undefined';
   }
 
+  function resetPlayers() {
+    for (const id of ['p1', 'p2']) {
+      players[id].active = false;
+      players[id].deviceId = null;
+      players[id].productName = null;
+      players[id].axis = 0;
+    }
+  }
+
+  function failPendingDevices(error) {
+    if (!pendingDevicesRequest) return;
+    const pending = pendingDevicesRequest;
+    clearTimeout(pending.timer);
+    pendingDevicesRequest = null;
+    pending.reject(error);
+  }
+
+  function failPendingBinds(error) {
+    for (const pending of pendingBindRequests.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(error);
+    }
+    pendingBindRequests.clear();
+  }
+
   function isActive(playerId) {
-    const p = players[playerId];
-    return !!(p && p.active);
+    const player = players[playerId];
+    return !!(player && player.active);
+  }
+
+  function getAxis(playerId) {
+    const player = players[playerId];
+    if (!player) return 0;
+    return player.axis;
   }
 
   function getVirtualX(playerId) {
-    const p = players[playerId];
-    if (!p) return 0.5;
-    return p.virtualX;
+    return 0.5 + getAxis(playerId) * 0.5;
   }
 
   function setSensitivity(playerId, value) {
-    const p = players[playerId];
-    if (!p) return;
+    const player = players[playerId];
+    if (!player) return;
     if (Number.isFinite(value) && value > 0) {
-      p.sensitivity = value;
+      player.sensitivity = value;
     }
   }
 
   function setRecenter(playerId, value) {
-    const p = players[playerId];
-    if (!p) return;
-    if (Number.isFinite(value) && value >= 0 && value <= 1) {
-      p.recenterPerFrame = value;
-    }
+    void playerId;
+    void value;
   }
 
   function resetVirtualX(playerId) {
-    const p = players[playerId];
-    if (!p) return;
-    p.virtualX = 0.5;
+    const player = players[playerId];
+    if (!player) return;
+    player.axis = 0;
   }
 
-  function tick() {
-    for (const id of ['p1', 'p2']) {
-      const p = players[id];
-      if (!p) continue;
-      if (p.recenterPerFrame > 0) {
-        p.virtualX += (0.5 - p.virtualX) * p.recenterPerFrame;
-        if (p.virtualX < 0) p.virtualX = 0;
-        if (p.virtualX > 1) p.virtualX = 1;
-      }
-    }
-  }
+  function tick() {}
 
   async function ensureConnected() {
     if (!supported()) {
-      throw new Error('瀏覽器不支援 WebSocket。');
+      throw new Error('WebSocket is not supported in this browser.');
     }
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      return;
-    }
+    if (ws && ws.readyState === WebSocket.OPEN) return;
 
-    if (isConnecting) {
-      await waitForSocketReady();
+    if (isConnecting && connectPromise) {
+      await connectPromise;
       return;
     }
 
     isConnecting = true;
-
     ws = new WebSocket(WS_URL);
 
-    await new Promise((resolve, reject) => {
+    connectPromise = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         isConnecting = false;
-        reject(new Error('連不到本機橋接程式，請先啟動 MouseBridge。'));
+        connectPromise = null;
+        reject(new Error('MouseBridge connection timed out.'));
       }, 3000);
 
       ws.onopen = () => {
         clearTimeout(timer);
         isConnecting = false;
+        connectPromise = null;
         resolve();
       };
 
       ws.onerror = () => {
         clearTimeout(timer);
         isConnecting = false;
-        reject(new Error('WebSocket 連線失敗。'));
+        connectPromise = null;
+        failPendingDevices(new Error('MouseBridge WebSocket failed.'));
+        failPendingBinds(new Error('MouseBridge WebSocket failed.'));
+        reject(new Error('MouseBridge WebSocket failed.'));
       };
 
       ws.onclose = () => {
-        for (const id of ['p1', 'p2']) {
-          players[id].active = false;
-          players[id].deviceId = null;
-          players[id].productName = null;
-          players[id].virtualX = 0.5;
-        }
+        resetPlayers();
+        failPendingDevices(new Error('MouseBridge connection closed.'));
+        failPendingBinds(new Error('MouseBridge connection closed.'));
       };
 
       ws.onmessage = onMessage;
     });
-  }
 
-  function waitForSocketReady() {
-    return new Promise((resolve, reject) => {
-      const start = performance.now();
-
-      const t = setInterval(() => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          clearInterval(t);
-          resolve();
-          return;
-        }
-        if (performance.now() - start > 3000) {
-          clearInterval(t);
-          reject(new Error('等待橋接連線逾時。'));
-        }
-      }, 50);
-    });
+    await connectPromise;
   }
 
   function onMessage(ev) {
@@ -154,131 +163,215 @@ const InputBridge = (() => {
     }
 
     if (msg.type === 'devices') {
-      if (pendingDevicesResolver) {
-        pendingDevicesResolver(Array.isArray(msg.devices) ? msg.devices : []);
-        pendingDevicesResolver = null;
-        pendingDevicesRejecter = null;
+      if (pendingDevicesRequest && (msg.requestId == null || msg.requestId === pendingDevicesRequest.requestId)) {
+        const pending = pendingDevicesRequest;
+        clearTimeout(pending.timer);
+        pendingDevicesRequest = null;
+        pending.resolve(Array.isArray(msg.devices) ? msg.devices : []);
       }
       return;
     }
 
     if (msg.type === 'move') {
-      const playerId = msg.playerId;
-      const p = players[playerId];
-      if (!p) return;
+      const player = players[msg.playerId];
+      if (!player) return;
 
       const dx = Number(msg.dx) || 0;
-      // console.log('MOVE', playerId, dx); // 測試完可把這行註解掉避免 Console 太吵
+      const dy = Number(msg.dy) || 0;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
 
-      p.virtualX += dx * p.sensitivity;
+      if (absDx <= AXIS_NOISE_FLOOR && absDy <= AXIS_NOISE_FLOOR) return;
+      if (absDy > absDx * AXIS_LOCK_RATIO) return;
 
-      if (p.virtualX < 0) p.virtualX = 0;
-      if (p.virtualX > 1) p.virtualX = 1;
+      player.axis = _clampAxis(player.axis + dx * player.sensitivity);
       return;
     }
 
     if (msg.type === 'connected') {
-      const playerId = msg.playerId;
-      const p = players[playerId];
-      if (!p) return;
+      const player = players[msg.playerId];
+      if (!player) return;
 
-      p.active = true;
-      if (msg.deviceId) p.deviceId = msg.deviceId;
-      if (msg.name) p.productName = msg.name;
+      player.active = true;
+      if (msg.deviceId) player.deviceId = msg.deviceId;
+      if (msg.name) player.productName = msg.name;
+
+      const pendingBind = pendingBindRequests.get(msg.playerId);
+      if (pendingBind) {
+        clearTimeout(pendingBind.timer);
+        pendingBindRequests.delete(msg.playerId);
+        pendingBind.resolve({
+          playerId: msg.playerId,
+          deviceId: player.deviceId,
+          productName: player.productName,
+          vendorId: 0,
+          productId: 0,
+        });
+      }
       return;
     }
 
     if (msg.type === 'disconnected') {
-      const playerId = msg.playerId;
-      const p = players[playerId];
-      if (!p) return;
+      const player = players[msg.playerId];
+      if (!player) return;
 
-      p.active = false;
-      p.deviceId = null;
-      p.productName = null;
-      p.virtualX = 0.5;
+      player.active = false;
+      player.deviceId = null;
+      player.productName = null;
+      player.axis = 0;
+
+      const pendingBind = pendingBindRequests.get(msg.playerId);
+      if (pendingBind) {
+        clearTimeout(pendingBind.timer);
+        pendingBindRequests.delete(msg.playerId);
+        pendingBind.reject(new Error(`MouseBridge rejected ${msg.playerId.toUpperCase()} binding.`));
+      }
       return;
     }
 
     if (msg.type === 'error') {
+      failPendingBinds(new Error(msg.message || 'bridge error'));
       console.error('[InputBridge]', msg.message || 'bridge error');
+      return;
+    }
+
+    if (msg.type === 'bridge-debug') {
+      if (msg.playerId === 'p1' || msg.playerId === 'p2') {
+        bridgeDebug[msg.playerId] = {
+          rawInputRegistered: !!msg.rawInputRegistered,
+          rawInputRegisterError: Number(msg.rawInputRegisterError) || 0,
+          boundDeviceId: msg.boundDeviceId || '',
+          boundDeviceName: msg.boundDeviceName || '',
+          boundHandle: msg.boundHandle || '',
+          lastRawHandle: msg.lastRawHandle || '',
+          lastRawDx: Number(msg.lastRawDx) || 0,
+          lastRawDy: Number(msg.lastRawDy) || 0,
+          rawInputCount: Number(msg.rawInputCount) || 0,
+          moveSentCount: Number(msg.moveSentCount) || 0,
+          lastMoveDx: Number(msg.lastMoveDx) || 0,
+          lastMoveDy: Number(msg.lastMoveDy) || 0,
+        };
+      }
     }
   }
 
   function requestDevices() {
-    return new Promise((resolve, reject) => {
-      if (!ws || ws.readyState !== WebSocket.OPEN) {
-        reject(new Error('橋接程式尚未連線。'));
-        return;
-      }
+    if (pendingDevicesRequest) {
+      return pendingDevicesRequest.promise;
+    }
 
-      pendingDevicesResolver = resolve;
-      pendingDevicesRejecter = reject;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error('MouseBridge is not connected.'));
+    }
 
-      ws.send(JSON.stringify({ type: 'list-devices' }));
-
-      setTimeout(() => {
-        if (pendingDevicesRejecter) {
-          pendingDevicesRejecter(new Error('拿不到裝置清單。'));
-          pendingDevicesResolver = null;
-          pendingDevicesRejecter = null;
+    const requestId = ++pendingDevicesRequestId;
+    const promise = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        if (pendingDevicesRequest && pendingDevicesRequest.requestId === requestId) {
+          pendingDevicesRequest = null;
+          reject(new Error('Timed out while listing devices.'));
         }
-      }, 2000);
+      }, 4000);
+
+      pendingDevicesRequest = { requestId, resolve, reject, timer, promise: null };
+
+      ws.send(JSON.stringify({
+        type: 'list-devices',
+        requestId,
+      }));
     });
+
+    pendingDevicesRequest.promise = promise;
+    return promise;
+  }
+
+  async function selectDevice(message, defaultPick) {
+    if (typeof window.__motoDuelSelectOption === 'function') {
+      return window.__motoDuelSelectOption(message, defaultPick);
+    }
+    return prompt(message, defaultPick);
+  }
+
+  function waitForBindAck(playerId) {
+    const existing = pendingBindRequests.get(playerId);
+    if (existing) {
+      return existing.promise;
+    }
+
+    const promise = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        pendingBindRequests.delete(playerId);
+        reject(new Error(`Timed out while waiting for ${playerId.toUpperCase()} bind confirmation.`));
+      }, 4000);
+
+      pendingBindRequests.set(playerId, { resolve, reject, timer, promise: null });
+    });
+
+    pendingBindRequests.get(playerId).promise = promise;
+    return promise;
   }
 
   async function bindPlayer(playerId) {
     if (!players[playerId]) {
-      throw new Error(`未知 playerId: ${playerId}`);
+      throw new Error(`Unknown playerId: ${playerId}`);
     }
 
-    await ensureConnected();
-
-    const devices = await requestDevices();
-    if (!devices.length) {
-      throw new Error('橋接程式有啟動，但沒有回傳任何裝置。');
+    if (currentBindPromise) {
+      return currentBindPromise;
     }
 
-    const options = devices
-      .map((d, i) => {
-        const name = d.name || d.productName || `(裝置 ${i + 1})`;
-        return `${i + 1}. ${name}`;
-      })
-      .join('\n');
+    currentBindPromise = (async () => {
+      await ensureConnected();
 
-    const defaultPick = playerId === 'p1' ? '1' : '2';
-    const raw = prompt(`請輸入要綁定給 ${playerId.toUpperCase()} 的滑鼠編號：\n\n${options}`, defaultPick);
-    
-    if (raw === null) return; // 使用者按取消
-    
-    const idx = Number(raw) - 1;
+      const devices = await requestDevices();
+      if (!devices.length) {
+        throw new Error('No mouse devices were reported by MouseBridge.');
+      }
 
-    if (!Number.isInteger(idx) || idx < 0 || idx >= devices.length) {
-      throw new Error('未選擇有效裝置。');
+      const options = devices
+        .map((device, index) => {
+          const name = device.name || device.productName || `(Device ${index + 1})`;
+          return `${index + 1}. ${name}`;
+        })
+        .join('\n');
+
+      const defaultPick = playerId === 'p1' ? '1' : '2';
+      const raw = await selectDevice(`Select a mouse for ${playerId.toUpperCase()}:\n\n${options}`, defaultPick);
+      if (raw === null) return;
+
+      const index = Number(raw) - 1;
+      if (!Number.isInteger(index) || index < 0 || index >= devices.length) {
+        throw new Error('Invalid mouse selection.');
+      }
+
+      const device = devices[index];
+      const deviceId = device.id || device.deviceId || `device-${index}`;
+      const name = device.name || device.productName || `Mouse ${index + 1}`;
+
+      players[playerId].active = false;
+      players[playerId].deviceId = null;
+      players[playerId].productName = null;
+      players[playerId].axis = 0;
+
+      const bindAck = waitForBindAck(playerId);
+      ws.send(JSON.stringify({
+        type: 'bind-device',
+        playerId,
+        deviceId,
+      }));
+
+      const boundInfo = await bindAck;
+      return {
+        ...boundInfo,
+        productName: boundInfo.productName || name,
+      };
+    })();
+
+    try {
+      return await currentBindPromise;
+    } finally {
+      currentBindPromise = null;
     }
-
-    const device = devices[idx];
-    const deviceId = device.id || device.deviceId || `device-${idx}`;
-    const name = device.name || device.productName || `Mouse ${idx + 1}`;
-
-    players[playerId].deviceId = deviceId;
-    players[playerId].productName = name;
-    players[playerId].virtualX = 0.5;
-    players[playerId].active = true;
-
-    ws.send(JSON.stringify({
-      type: 'bind-device',
-      playerId,
-      deviceId,
-    }));
-
-    return {
-      playerId,
-      deviceId,
-      productName: name,
-      vendorId: 0,
-      productId: 0,
-    };
   }
 
   async function unbindPlayer(playerId) {
@@ -287,7 +380,7 @@ const InputBridge = (() => {
     players[playerId].active = false;
     players[playerId].deviceId = null;
     players[playerId].productName = null;
-    players[playerId].virtualX = 0.5;
+    players[playerId].axis = 0;
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
@@ -305,19 +398,27 @@ const InputBridge = (() => {
       try { ws.close(); } catch (_) {}
       ws = null;
     }
+
+    failPendingDevices(new Error('MouseBridge was disconnected.'));
+    failPendingBinds(new Error('MouseBridge was disconnected.'));
   }
 
   function getStatus() {
     return {
       connected: !!(ws && ws.readyState === WebSocket.OPEN),
-      p1: { ...players.p1 },
-      p2: { ...players.p2 },
+      p1: { ...players.p1, virtualX: getVirtualX('p1') },
+      p2: { ...players.p2, virtualX: getVirtualX('p2') },
+      debug: {
+        p1: bridgeDebug.p1 ? { ...bridgeDebug.p1 } : null,
+        p2: bridgeDebug.p2 ? { ...bridgeDebug.p2 } : null,
+      },
     };
   }
 
   return {
     supported,
     isActive,
+    getAxis,
     getVirtualX,
     setSensitivity,
     setRecenter,
@@ -332,9 +433,6 @@ const InputBridge = (() => {
   };
 })();
 
-// ──────────────────────────────────────────────────────────────
-// 相容舊版按鈕 / 舊程式碼用的 InputHID 殼
-// ──────────────────────────────────────────────────────────────
 const InputHID = (() => {
   function supported() {
     return InputBridge.supported();
@@ -348,12 +446,16 @@ const InputHID = (() => {
     return InputBridge.getVirtualX('p2');
   }
 
-  function setSensitivity(v) {
-    InputBridge.setSensitivity('p2', v);
+  function getAxis() {
+    return InputBridge.getAxis('p2');
   }
 
-  function setRecenter(v) {
-    InputBridge.setRecenter('p2', v);
+  function setSensitivity(value) {
+    InputBridge.setSensitivity('p2', value);
+  }
+
+  function setRecenter(value) {
+    InputBridge.setRecenter('p2', value);
   }
 
   function resetVirtualX() {
@@ -365,17 +467,18 @@ const InputHID = (() => {
   }
 
   async function connect() {
-    return await InputBridge.bindPlayer('p2');
+    return InputBridge.bindPlayer('p2');
   }
 
   async function disconnect() {
-    return await InputBridge.unbindPlayer('p2');
+    return InputBridge.unbindPlayer('p2');
   }
 
   return {
     supported,
     isActive,
     getVirtualX,
+    getAxis,
     setSensitivity,
     setRecenter,
     resetVirtualX,
@@ -385,6 +488,5 @@ const InputHID = (() => {
   };
 })();
 
-// ★★★ 核心防禦：強制掛載到 Window 全域物件，讓 input.js 絕對抓得到 ★★★
 window.InputBridge = InputBridge;
 window.InputHID = InputHID;
