@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MOTO DUEL — Custom Mouse Controller</title>
+  <title>Moto Duel Custom Mouse Controller</title>
+  <link rel="icon" href="data:," />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
 <div id="game-wrapper">
-
   <canvas id="canvas-p1"></canvas>
   <canvas id="canvas-p2"></canvas>
 
@@ -19,7 +18,6 @@
   <div class="impact-flash" id="flash-p2"></div>
 
   <div id="hud">
-
     <div class="hud-top p1">
       <div class="hud-lap" id="p1-lap">LAP 1 / 5</div>
       <div class="hud-time" id="p1-time">00:00.000</div>
@@ -57,10 +55,10 @@
         </div>
       </div>
       <div class="hud-feedback">
-        <div class="feedback-pill tilt-l" id="p1-pill-tiltl">◀ TILT</div>
-        <div class="feedback-pill tilt-r" id="p1-pill-tiltr">TILT ▶</div>
+        <div class="feedback-pill tilt-l" id="p1-pill-tiltl">LEFT TILT</div>
+        <div class="feedback-pill tilt-r" id="p1-pill-tiltr">RIGHT TILT</div>
         <div class="feedback-pill rumble" id="p1-pill-rumble">RUMBLE</div>
-        <div class="feedback-pill bump"   id="p1-pill-bump">BUMP</div>
+        <div class="feedback-pill bump" id="p1-pill-bump">BUMP</div>
       </div>
     </div>
 
@@ -83,10 +81,10 @@
         </div>
       </div>
       <div class="hud-feedback">
-        <div class="feedback-pill tilt-l" id="p2-pill-tiltl">◀ TILT</div>
-        <div class="feedback-pill tilt-r" id="p2-pill-tiltr">TILT ▶</div>
+        <div class="feedback-pill tilt-l" id="p2-pill-tiltl">LEFT TILT</div>
+        <div class="feedback-pill tilt-r" id="p2-pill-tiltr">RIGHT TILT</div>
         <div class="feedback-pill rumble" id="p2-pill-rumble">RUMBLE</div>
-        <div class="feedback-pill bump"   id="p2-pill-bump">BUMP</div>
+        <div class="feedback-pill bump" id="p2-pill-bump">BUMP</div>
       </div>
     </div>
 
@@ -103,50 +101,77 @@
       <canvas id="minimap-canvas" width="200" height="200"></canvas>
     </div>
 
-  </div><div id="countdown">
+    <div id="race-progress-wrap">
+      <div class="race-prog-bar p1"><div class="race-prog-fill" id="race-prog-p1"></div></div>
+      <div class="race-prog-bar p2"><div class="race-prog-fill" id="race-prog-p2"></div></div>
+    </div>
+
+    <div id="gap-indicator">
+      <div id="gap-label">EQUAL</div>
+      <div id="gap-delta">0.0s</div>
+    </div>
+
+    <div id="input-debug">
+      <div class="debug-title">INPUT DEBUG</div>
+      <div id="debug-line-mouse">mouse: waiting...</div>
+      <div id="debug-line-p1">p1: waiting...</div>
+      <div id="debug-line-p2">p2: waiting...</div>
+    </div>
+  </div>
+
+  <div id="countdown">
     <div class="countdown-num" id="countdown-num">3</div>
   </div>
 
   <div id="overlay">
     <div class="overlay-box" id="overlay-content">
-
       <div id="screen-start">
         <div class="overlay-title">MOTO<br>DUEL</div>
-        <div class="overlay-sub">CUSTOM MOUSE CONTROLLER · SPLIT SCREEN</div>
+        <div class="overlay-sub">CUSTOM MOUSE CONTROLLER SPLIT SCREEN</div>
 
         <div class="controls-grid">
           <div class="ctrl-col">
             <div class="ctrl-col-title p1">PLAYER 1</div>
-            <div class="ctrl-row"><span class="kbd">↑</span> 油門</div>
-            <div class="ctrl-row"><span class="kbd">↓</span> 煞車</div>
-            <div class="ctrl-row"><span class="kbd">滑鼠</span> 轉向</div>
-            <div class="ctrl-row"><span class="kbd">→</span> 升檔</div>
-            <div class="ctrl-row"><span class="kbd">←</span> 降檔</div>
-            <div class="ctrl-row"><span class="kbd">R</span> 卡牆重置</div>
+            <div class="ctrl-row"><span class="kbd">↑</span> THROTTLE</div>
+            <div class="ctrl-row"><span class="kbd">↓</span> BRAKE</div>
+            <div class="ctrl-row"><span class="kbd">MOUSE 1</span> STEER</div>
+            <div class="ctrl-row"><span class="kbd">→</span> SHIFT UP</div>
+            <div class="ctrl-row"><span class="kbd">←</span> SHIFT DOWN</div>
+            <div class="ctrl-row"><span class="kbd">R</span> RESET BIKE</div>
           </div>
           <div class="ctrl-col">
             <div class="ctrl-col-title p2">PLAYER 2</div>
-            <div class="ctrl-row"><span class="kbd">W</span> 油門</div>
-            <div class="ctrl-row"><span class="kbd">S</span> 煞車</div>
-            <div class="ctrl-row"><span class="kbd">第二顆滑鼠</span> 轉向 (Bridge 必要)</div>
-            <div class="ctrl-row"><span class="kbd">D</span> 升檔</div>
-            <div class="ctrl-row"><span class="kbd">A</span> 降檔</div>
-            <div class="ctrl-row"><span class="kbd">U</span> 卡牆重置</div>
+            <div class="ctrl-row"><span class="kbd">W</span> THROTTLE</div>
+            <div class="ctrl-row"><span class="kbd">S</span> BRAKE</div>
+            <div class="ctrl-row"><span class="kbd">MOUSE 2</span> STEER</div>
+            <div class="ctrl-row"><span class="kbd">D</span> SHIFT UP</div>
+            <div class="ctrl-row"><span class="kbd">A</span> SHIFT DOWN</div>
+            <div class="ctrl-row"><span class="kbd">U</span> RESET BIKE</div>
           </div>
         </div>
+
         <div class="ctrl-row ctrl-row-center">
-          <span class="kbd">ESC</span>&nbsp;暫停 / 繼續
+          <span class="kbd">ESC</span>&nbsp;PAUSE
+          <span class="kbd" style="margin-left: 12px;">Q</span>&nbsp;SETTINGS
         </div>
 
         <div id="hid-section" class="hid-section">
-          <button class="start-btn" id="hid-btn" type="button"
-                  style="font-size: 14px; padding: 10px 20px;"
-                  onclick="connectP2Mouse()">
-            <span>🖱 啟用 P2 第二顆實體滑鼠 (MouseBridge)</span>
-          </button>
-          <div id="hid-status">
-            P2 轉向必須透過 MouseBridge 第二顆滑鼠。請先啟動本機 MouseBridge 後再按上方按鈕。
+          <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-bottom:12px;">
+            <button class="start-btn" id="bind-p1-btn" type="button" onclick="bindBridgePlayer('p1')">
+              <span>BIND P1 MOUSE</span>
+            </button>
+            <button class="start-btn" id="hid-btn" type="button" onclick="bindBridgePlayer('p2')">
+              <span>BIND P2 MOUSE</span>
+            </button>
+            <button class="start-btn" id="disconnect-bridge-btn" type="button" onclick="disconnectBridgeDevices()">
+              <span>DISCONNECT</span>
+            </button>
           </div>
+          <div id="hid-status">Bridge not connected yet.</div>
+          <label class="setting-row" style="margin-top:14px; text-align:left;">
+            <span>Music volume <em id="start-bgm-volume-val">10%</em></span>
+            <input type="range" id="start-bgm-volume" min="0" max="100" step="1" value="10" />
+          </label>
         </div>
 
         <button class="start-btn" id="start-btn" onclick="startGame()">
@@ -158,11 +183,15 @@
         <div class="overlay-sub">RACE FINISHED</div>
         <div class="winner-name" id="win-name">P1 WINS</div>
         <div class="lap-times-table" id="win-times"></div>
-        <button class="start-btn" id="restart-btn" onclick="restartGame()">
-          <span>RACE AGAIN</span>
-        </button>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center;">
+          <button class="start-btn" id="restart-btn" onclick="startGame()">
+            <span>RACE AGAIN</span>
+          </button>
+          <button class="start-btn" onclick="restartGame()">
+            <span>MAIN MENU</span>
+          </button>
+        </div>
       </div>
-
     </div>
   </div>
 
@@ -179,23 +208,38 @@
     <div class="settings-card">
       <div class="pause-title">SETTINGS</div>
       <label class="setting-row">
-        <span>自動重置</span>
+        <span>Mouse sensitivity <em id="opt-mouse-sens-val">340</em></span>
+        <input type="range" id="opt-mouse-sens" min="180" max="520" step="10" value="340" />
+      </label>
+      <label class="setting-row setting-row-inline">
+        <span>Sound effects</span>
+        <input type="checkbox" id="opt-audio-enabled" checked />
+      </label>
+      <label class="setting-row">
+        <span>Music volume <em id="opt-bgm-volume-val">10%</em></span>
+        <input type="range" id="opt-bgm-volume" min="0" max="100" step="1" value="10" />
+      </label>
+      <label class="setting-row">
+        <span>Auto reset</span>
         <input type="checkbox" id="opt-auto-reset" checked />
       </label>
       <label class="setting-row">
-        <span>逆向自動重置秒數 <em id="opt-wrongway-val">3.6s</em></span>
+        <span>Wrong-way reset <em id="opt-wrongway-val">3.6s</em></span>
         <input type="range" id="opt-wrongway" min="2" max="8" step="0.2" value="3.6" />
       </label>
       <label class="setting-row">
-        <span>卡牆自動重置秒數 <em id="opt-stuck-val">2.6s</em></span>
+        <span>Wall-stuck reset <em id="opt-stuck-val">2.6s</em></span>
         <input type="range" id="opt-stuck" min="1.2" max="6" step="0.2" value="2.6" />
       </label>
+      <div class="settings-actions">
+        <button class="start-btn" id="settings-restart-race" type="button"><span>RESTART RACE</span></button>
+      </div>
       <button class="start-btn" id="settings-close" type="button"><span>CLOSE</span></button>
     </div>
   </div>
+</div>
 
-</div><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="track.js"></script>
 <script src="bike.js"></script>
 <script src="camera.js"></script>
@@ -203,40 +247,107 @@
 <script src="input.js"></script>
 <script src="feedback.js"></script>
 <script src="hud.js"></script>
+<script src="audio.js"></script>
 <script src="main.js"></script>
 
 <script>
-  async function connectP2Mouse() {
-    const btn    = document.getElementById('hid-btn');
-    const status = document.getElementById('hid-status');
+  function bridgeStatusEl() {
+    return document.getElementById('hid-status');
+  }
 
-    if (!InputHID.supported()) {
-      status.style.color = '#ff6666';
-      status.textContent = '❌ 目前環境不支援本機橋接（WebSocket）。請確認瀏覽器允許 ws://127.0.0.1 連線。';
-      return;
+  function setBridgeStatus(text, color = '#aaaaaa') {
+    const el = bridgeStatusEl();
+    if (!el) return;
+    el.style.color = color;
+    el.textContent = text;
+  }
+
+  function hexOrZero(value) {
+    const num = Number(value) || 0;
+    return `0x${num.toString(16).toUpperCase().padStart(4, '0')}`;
+  }
+
+  function describeBridgePlayer(label, player) {
+    if (!player?.active) return `${label}: not bound`;
+    const name = player.productName || player.deviceId || 'unknown device';
+    return `${label}: bound to ${name} | x=${Number(player.virtualX ?? 0.5).toFixed(3)}`;
+  }
+
+  function refreshBridgeButtons() {
+    const p1Btn = document.getElementById('bind-p1-btn');
+    const p2Btn = document.getElementById('hid-btn');
+    const status = window.InputBridge?.getStatus?.();
+    if (p1Btn) {
+      p1Btn.querySelector('span').textContent = status?.p1?.active ? 'REBIND P1 MOUSE' : 'BIND P1 MOUSE';
     }
-
-    if (InputHID.isActive()) {
-      // 再按一次 = 解除
-      await InputHID.disconnect();
-      btn.querySelector('span').textContent = '🖱 啟用 P2 第二顆實體滑鼠 (MouseBridge)';
-      status.style.color = '#aaa';
-      status.textContent = '已解除。P2 暫時無法轉向，請重新連接 MouseBridge。';
-      return;
-    }
-
-    try {
-      const info = await InputHID.connect();
-      btn.querySelector('span').textContent = '🔌 解除 P2 實體滑鼠';
-      status.style.color = '#00E676';
-      status.textContent = '✅ MouseBridge 已連接：' + info.productName +
-        '  (VID ' + info.vendorId.toString(16) + ' / PID ' + info.productId.toString(16) + ')';
-    } catch (err) {
-      status.style.color = '#ff6666';
-      status.textContent = '❌ ' + (err.message || err);
+    if (p2Btn) {
+      p2Btn.querySelector('span').textContent = status?.p2?.active ? 'REBIND P2 MOUSE' : 'BIND P2 MOUSE';
     }
   }
-</script>
 
+  function updateBridgeSummary() {
+    const status = window.InputBridge?.getStatus?.();
+    if (!status) {
+      setBridgeStatus('Bridge script not ready.', '#ff6666');
+      return;
+    }
+    const lines = [
+      `Socket: ${status.connected ? 'connected' : 'disconnected'}`,
+      describeBridgePlayer('P1', status.p1),
+      describeBridgePlayer('P2', status.p2),
+    ];
+    setBridgeStatus(lines.join(' | '), status.connected ? '#8fe38f' : '#aaaaaa');
+    refreshBridgeButtons();
+  }
+
+  async function bindBridgePlayer(playerId) {
+    setBridgeStatus(`Binding ${playerId.toUpperCase()} mouse...`, '#ffd166');
+    try {
+      await InputBridge.ensureConnected();
+      const info = await InputBridge.bindPlayer(playerId);
+      const sens = window.Input?.getMouseSensitivity?.() ?? (1 / 340);
+      try { window.InputBridge?.setSensitivity?.(playerId, sens); } catch (_) {}
+      try { window.InputHID?.setSensitivity?.(sens); } catch (_) {}
+
+      setBridgeStatus(
+        `${playerId.toUpperCase()} bound: ${info.productName || info.deviceId} | VID ${hexOrZero(info.vendorId)} | PID ${hexOrZero(info.productId)}`,
+        '#00E676'
+      );
+      updateBridgeSummary();
+      return info;
+    } catch (err) {
+      setBridgeStatus(`Bind failed: ${err?.message || err}`, '#ff6666');
+      throw err;
+    }
+  }
+
+  async function disconnectBridgeDevices() {
+    try {
+      await window.InputBridge?.disconnectAll?.();
+      setBridgeStatus('Bridge devices disconnected.', '#aaaaaa');
+      updateBridgeSummary();
+    } catch (err) {
+      setBridgeStatus(`Disconnect failed: ${err?.message || err}`, '#ff6666');
+    }
+  }
+
+  async function connectP2Mouse() {
+    return bindBridgePlayer('p2');
+  }
+
+  async function connectP1Mouse() {
+    return bindBridgePlayer('p1');
+  }
+
+  window.bindBridgePlayer = bindBridgePlayer;
+  window.disconnectBridgeDevices = disconnectBridgeDevices;
+  window.connectP1Mouse = connectP1Mouse;
+  window.connectP2Mouse = connectP2Mouse;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    updateBridgeSummary();
+    setInterval(updateBridgeSummary, 400);
+  });
+</script>
 </body>
 </html>

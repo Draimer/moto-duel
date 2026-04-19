@@ -254,6 +254,10 @@ const Bike = (() => {
       offTrackTimer: 0,
       lastProgressDelta: 0,
       wrongWayTime: 0,
+      hitWallThisFrame: false,
+      hitObstacleThisFrame: false,
+      wasHittingWall: false,
+      wasHittingObstacle: false,
     };
   }
 
@@ -261,7 +265,9 @@ const Bike = (() => {
   function update(state, dt, trackData) {
     if (state.finished) return;
 
-    const { trackCurve: curve, TRACK_WIDTH: width, BUMP_SEGMENTS } = trackData;
+    const { trackCurve: curve, TRACK_WIDTH: width, obstacles = [] } = trackData;
+    state.hitWallThisFrame = false;
+    state.hitObstacleThisFrame = false;
 
     // ── 絕對方向轉向 ──────────────────────────────────────────
     const baseFollow = 2.0;   
@@ -331,8 +337,13 @@ const Bike = (() => {
       ? state.offTrackTimer + dt
       : Math.max(0, state.offTrackTimer - dt * 1.6);
 
-    if (distFromCenter > width * 1.1) {
-      const pf = (distFromCenter - width * 1.1) / width;
+    // 使用滯後邊界：超過 1.1 倍才算撞牆，回到 1.05 倍以內才算脫離。
+    // 這樣可以避免沿著牆摩擦時「接觸/脫離」訊號每幀抖動。
+    const WALL_HIT_EDGE     = width * 1.1;
+    const WALL_RELEASE_EDGE = width * 1.05;
+
+    if (distFromCenter > WALL_HIT_EDGE) {
+      const pf = (distFromCenter - WALL_HIT_EDGE) / width;
       state.position.x -= (dx / distFromCenter) * pf * 3.0;
       state.position.z -= (dz / distFromCenter) * pf * 3.0;
       state.speed *= 0.86;
@@ -353,18 +364,58 @@ const Bike = (() => {
         state.baseAngle = state.angle;   // 同步 baseAngle，切斷錯誤的追蹤迴圈
       }
 
+      // 只在「剛開始」接觸牆的那一幀觸發音效，持續摩擦時不重複觸發。
+      if (!state.wasHittingWall) {
+        state.hitWallThisFrame = true;
+        state.wasHittingWall = true;
+      }
+
       state.feedbackRumble = true;
       state.feedbackRumbleTtl = 0;
     } else {
+      // 滯後：只有離牆夠遠才重置「正在撞牆」狀態。
+      if (distFromCenter < WALL_RELEASE_EDGE) {
+        state.wasHittingWall = false;
+      }
+
       if (state.feedbackRumbleTtl > 0) {
         state.feedbackRumbleTtl -= dt * 1000;
-        state.feedbackRumble = true;   
+        state.feedbackRumble = true;
       } else {
         state.feedbackRumble = false;
       }
     }
 
     // ── MESH UPDATE (視覺與動畫更新) ──────────────────────────────
+    let touchingAnyObstacle = false;
+    for (const obstacle of obstacles) {
+      const ox = state.position.x - obstacle.position.x;
+      const oz = state.position.z - obstacle.position.z;
+      const hitRadius = (obstacle.radius || 1.8) + 1.25;
+      const dist2 = ox * ox + oz * oz;
+      if (dist2 >= hitRadius * hitRadius) continue;
+
+      const dist = Math.max(0.001, Math.sqrt(dist2));
+      const push = hitRadius - dist;
+      state.position.x += (ox / dist) * push;
+      state.position.z += (oz / dist) * push;
+      state.speed *= obstacle.speedPenalty || 0.55;
+      state.feedbackRumble = true;
+      state.feedbackRumbleTtl = Math.max(state.feedbackRumbleTtl, 220);
+      touchingAnyObstacle = true;
+    }
+
+    // 和撞牆一樣：只在「剛開始」接觸障礙物時才觸發音效，
+    // 離開後下一次再接觸才會再響一次。
+    if (touchingAnyObstacle) {
+      if (!state.wasHittingObstacle) {
+        state.hitObstacleThisFrame = true;
+        state.wasHittingObstacle = true;
+      }
+    } else {
+      state.wasHittingObstacle = false;
+    }
+
     if (state.mesh) {
       state.mesh.position.copy(state.position);
       state.mesh.rotation.y = state.angle;

@@ -4,8 +4,9 @@
 
 const HUD = (() => {
 
-  let minimapCtx = null;
-  let trackCurve = null;
+  let minimapCtx  = null;
+  let trackCurve  = null;
+  let trackLength = 1;
 
   const TOTAL_LAPS = 5;
 
@@ -14,7 +15,8 @@ const HUD = (() => {
   let systemMsgTimer = null;
 
   function init(curve) {
-    trackCurve = curve;
+    trackCurve  = curve;
+    trackLength = curve ? curve.getLength() : 1500;
     const canvas = document.getElementById('minimap-canvas');
     if (canvas) minimapCtx = canvas.getContext('2d');
   }
@@ -33,6 +35,7 @@ const HUD = (() => {
     _updatePlayer('p1', b1, now);
     _updatePlayer('p2', b2, now);
     _updateMinimap(b1, b2);
+    _updateRaceProgress(b1, b2);
   }
 
   function _updatePlayer(id, bike, now) {
@@ -72,8 +75,8 @@ const HUD = (() => {
     // Best lap
     _set(`${id}-best`, `BEST: ${_fmt(bike.bestLap)}`);
 
-    // Position
-    _set(`${id}-pos`, id === 'p1' ? 'P1' : 'P2');
+    // Position (calculated in _updateRaceProgress)
+
 
     // Tilt cursor
     const tilt   = Feedback.getTilt(id);
@@ -97,6 +100,64 @@ const HUD = (() => {
       const warn = wrongMs > 700;
       wrongWayEl.style.opacity = warn ? '1' : '0';
       wrongWayEl.textContent = warn ? `WRONG WAY ${Math.ceil(wrongMs / 1000)}s` : 'WRONG WAY';
+    }
+  }
+
+  // ── RACE PROGRESS + GAP INDICATOR ────────────────────────────
+  function _updateRaceProgress(b1, b2) {
+    // 總賽程進度 (0~1)
+    const prog1 = Math.min(1, (b1.lap - 1 + Math.min(b1.trackT || 0, 0.999)) / TOTAL_LAPS);
+    const prog2 = Math.min(1, (b2.lap - 1 + Math.min(b2.trackT || 0, 0.999)) / TOTAL_LAPS);
+
+    // 進度條
+    const fill1 = document.getElementById('race-prog-p1');
+    const fill2 = document.getElementById('race-prog-p2');
+    if (fill1) fill1.style.width = (prog1 * 100).toFixed(2) + '%';
+    if (fill2) fill2.style.width = (prog2 * 100).toFixed(2) + '%';
+
+    // 名次 (1ST / 2ND)
+    const p1Leading = prog1 >= prog2;
+    const p1PosEl = document.getElementById('p1-pos');
+    const p2PosEl = document.getElementById('p2-pos');
+    if (p1PosEl) {
+      p1PosEl.textContent = p1Leading ? '1ST' : '2ND';
+      p1PosEl.style.color = p1Leading ? '#FFD700' : '#aaa';
+    }
+    if (p2PosEl) {
+      p2PosEl.textContent = p1Leading ? '2ND' : '1ST';
+      p2PosEl.style.color = p1Leading ? '#aaa' : '#FFD700';
+    }
+
+    // 間距計時器
+    const gapEl   = document.getElementById('gap-indicator');
+    const labelEl = document.getElementById('gap-label');
+    const deltaEl = document.getElementById('gap-delta');
+    if (!gapEl || !labelEl || !deltaEl) return;
+
+    const raceStarted = b1.passedStart || b2.passedStart;
+    if (!raceStarted) { gapEl.classList.remove('visible'); return; }
+
+    gapEl.classList.add('visible');
+    const diff    = prog1 - prog2;
+    const absDiff = Math.abs(diff);
+
+    if (absDiff < 0.0005) {
+      labelEl.textContent = '⬤ EQUAL';
+      labelEl.style.color = '#888';
+      deltaEl.textContent = '0.0s';
+      deltaEl.style.color = '#888';
+    } else {
+      const avgSpeed = Math.max((b1.speed + b2.speed) / 2, 10);
+      const gapSecs  = (absDiff * trackLength * TOTAL_LAPS / avgSpeed).toFixed(1);
+      if (diff > 0) {
+        labelEl.textContent = '▲ P1 LEADS';
+        labelEl.style.color = '#00CFFF';
+      } else {
+        labelEl.textContent = '▲ P2 LEADS';
+        labelEl.style.color = '#FF4444';
+      }
+      deltaEl.textContent = `+${gapSecs}s`;
+      deltaEl.style.color = '#FFD700';
     }
   }
 
@@ -150,18 +211,51 @@ const HUD = (() => {
       y: (p.z - minZ) * scale + offZ,
     });
 
-    // Draw track
-    ctx.beginPath();
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 5;
     const first = toMap(pts[0]);
-    ctx.moveTo(first.x, first.y);
-    for (let i = 1; i < pts.length; i++) {
-      const mp = toMap(pts[i]);
-      ctx.lineTo(mp.x, mp.y);
+
+    // Draw lower segments first, then elevated bridge segments on top.
+    const segs = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      segs.push({
+        a: toMap(a),
+        b: toMap(b),
+        y: (a.y + b.y) * 0.5,
+      });
     }
-    ctx.closePath();
-    ctx.stroke();
+    segs.sort((lhs, rhs) => lhs.y - rhs.y);
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    segs.forEach(seg => {
+      const lift = Math.max(0, seg.y);
+      const glow = Math.min(0.28, lift * 0.025);
+
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+      ctx.lineWidth = 8;
+      ctx.moveTo(seg.a.x, seg.a.y);
+      ctx.lineTo(seg.b.x, seg.b.y);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.strokeStyle = `rgba(255,255,255,${0.18 + glow})`;
+      ctx.lineWidth = lift > 1 ? 4 : 5;
+      ctx.moveTo(seg.a.x, seg.a.y);
+      ctx.lineTo(seg.b.x, seg.b.y);
+      ctx.stroke();
+
+      if (lift > 2.5) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(120,220,255,${Math.min(0.32, 0.10 + glow)})`;
+        ctx.lineWidth = 2;
+        ctx.moveTo(seg.a.x, seg.a.y);
+        ctx.lineTo(seg.b.x, seg.b.y);
+        ctx.stroke();
+      }
+    });
 
     // Start line marker
     ctx.beginPath();

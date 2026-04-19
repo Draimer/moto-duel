@@ -1,67 +1,54 @@
-// ═══════════════════════════════════════════════════════════════
-//  track.js  —  Monza-inspired circuit (high-speed + chicanes)
-//  30 control points · clockwise · flat terrain
+﻿// ????????????????????????????????????????????????????????????????//  track.js  ?? Monza-inspired circuit (high-speed + chicanes)
+//  30 control points 繚 clockwise 繚 flat terrain
 //
-//  [FIX] computeFrenetFrames 強制鎖定 Y 軸向上，解決扭轉破圖
-//  [FIX] getNearestT 局部搜尋快取，避免跳圈
-//  [NEW] 賽道方向箭頭 (每 1/18 一個黃色三角)
-// ═══════════════════════════════════════════════════════════════
-
+//  [FIX] computeFrenetFrames 撘瑕?? Y 頠詨?銝?閫?捱?剛??游?
+//  [FIX] getNearestT 撅?冽?撠翰???踹?頝喳?
+//  [NEW] 鞈賡??孵?蝞剝 (瘥?1/18 銝???脖?閫?
+// ????????????????????????????????????????????????????????????????
 const Track = (() => {
 
-  // ── Monza 風格賽道 — 30 控制點，順時鐘行進 ───────────────────
-  // 座標已正規化至 -1…+1，再乘 TRACK_SCALE
+  // ?? Monza 憸冽鞈賡? ??30 ?批暺??????????????????????????
+  // 摨扳?撌脫迤閬???-1??1嚗?銋?TRACK_SCALE
   //
-  //   主直線 → Variante del Rettifilo (T1/T2 減速彎)
-  //   → Curva Grande 長弧 → Variante della Roggia
-  //   → Lesmo 1 / Lesmo 2 → Serraglio 直線
-  //   → Ascari 複合彎 → Parabolica 長右彎回主直線
-  //
+  //   銝餌蝺???Variante del Rettifilo (T1/T2 皜?)
+  //   ??Curva Grande ?瑕憫 ??Variante della Roggia
+  //   ??Lesmo 1 / Lesmo 2 ??Serraglio ?渡?
+  //   ??Ascari 銴?敶???Parabolica ?瑕敶?銝餌蝺?  //
   const RAW_XZ = [
-    [  0.54,  0.62 ],  //  0  Start / Finish
-    [  0.56,  0.35 ],  //  1  主直線
-    [  0.57,  0.02 ],  //  2  主直線中段
-    [  0.58, -0.34 ],  //  3  主直線末端高速
-    [  0.56, -0.62 ],  //  4  T1 煞車點
-    [  0.42, -0.70 ],  //  5  Rettifilo 右切
-    [  0.22, -0.62 ],  //  6  Rettifilo 左切
-    [  0.30, -0.48 ],  //  7  Chicane 出口
-    [  0.18, -0.36 ],  //  8  Curva Grande 入
-    [ -0.02, -0.24 ],  //  9  Curva Grande 中
-    [ -0.26, -0.20 ],  // 10  Curva Grande 後段
-    [ -0.50, -0.28 ],  // 11  Roggia 接近
-    [ -0.72, -0.42 ],  // 12  Roggia 右切
-    [ -0.60, -0.54 ],  // 13  Roggia 左切
-    [ -0.42, -0.46 ],  // 14  Roggia 出口
-    [ -0.28, -0.35 ],  // 15  Lesmo 1 進彎
-    [ -0.16, -0.24 ],  // 16  Lesmo 1 出口
-    [ -0.26, -0.10 ],  // 17  Lesmo 2 入彎
-    [ -0.42,  0.06 ],  // 18  Lesmo 2 出彎
-    [ -0.40,  0.24 ],  // 19  Serraglio 起點
-    [ -0.20,  0.36 ],  // 20  Serraglio 中段
-    [  0.06,  0.34 ],  // 21  Serraglio 末端
-    [  0.28,  0.22 ],  // 22  Ascari 煞車點
-    [  0.40,  0.08 ],  // 23  Ascari 右
-    [  0.48, -0.06 ],  // 24  Ascari 左
-    [  0.34, -0.18 ],  // 25  Ascari 右出口
-    [  0.16, -0.08 ],  // 26  Parabolica 入彎
-    [  0.04,  0.10 ],  // 27  Parabolica 內側
-    [  0.08,  0.34 ],  // 28  Parabolica 持續給油
-    [  0.30,  0.56 ],  // 29  Parabolica 出彎接主直線
+    [  0.38, -0.58 ],  //  0  start / finish
+    [  0.62, -0.58 ],  //  1  long straight
+    [  0.82, -0.56 ],  //  2
+    [  0.92, -0.48 ],  //  3
+    [  0.92, -0.28 ],  //  4  right hairpin
+    [  0.72, -0.22 ],  //  5
+    [  0.22, -0.22 ],  //  6  middle straight
+    [  0.14, -0.18 ],  //  7  small kink
+    [  0.08, -0.16 ],  //  8
+    [ -0.08, -0.02 ],  //  9  climb to top-left
+    [ -0.30,  0.20 ],  // 10
+    [ -0.46,  0.40 ],  // 11
+    [ -0.62,  0.62 ],  // 12  upper-left corner
+    [ -0.82,  0.58 ],  // 13
+    [ -0.92,  0.42 ],  // 14
+    [ -0.76, -0.06 ],  // 15  left sweep down
+    [ -0.72, -0.40 ],  // 16
+    [ -0.56, -0.58 ],  // 17
+    [ -0.18, -0.58 ],  // 18
+    [  0.10, -0.54 ],  // 19
   ];
 
-  // Monza 風格同樣以平地為主，不做高低差
-  const ELEVATION = new Array(RAW_XZ.length).fill(0);
+  // Monza 憸冽?見隞亙像?啁銝鳴?銝?擃?撌?  const ELEVATION = new Array(RAW_XZ.length).fill(0);
 
   const TRACK_SCALE     = 520;
-  const ELEVATION_SCALE = 1.0;   // 平坦，此值無影響
+  const TRACK_ELEVATION = new Array(RAW_XZ.length).fill(0);
+  const ELEVATION_SCALE = 1.0;
   const TRACK_WIDTH     = 12;
   const ROAD_LIFT       = 0.08;
   const ROAD_DECAL_LIFT = ROAD_LIFT + 0.03;
   const TOTAL_LAPS      = 5;
-  const BUMP_SEGMENTS   = [11, 12, 13, 24];  // Chicane 區域顛簸感較強
+  const BUMP_SEGMENTS   = [3, 4, 14, 15];
 
-  const BARRIER_SKIP_RANGES = [];  // 無立交橋，全段都有護欄
+  const BARRIER_SKIP_RANGES = [];  // ?∠?鈭斗?嚗畾菟?風甈?
   const BARRIER_HEIGHT = 0.55;
   const BARRIER_OFFSET = TRACK_WIDTH + 1.6;
 
@@ -69,19 +56,19 @@ const Track = (() => {
   let checkpoints = [];
   let totalLength = 0;
   let bakedPath   = [];
+  let obstacles   = [];
 
-  // ═══════════════════════════════════════════════════════════════
-  //  BUILD
-  // ═══════════════════════════════════════════════════════════════
+  // ????????????????????????????????????????????????????????????????  //  BUILD
+  // ????????????????????????????????????????????????????????????????
   function build(scene) {
     const ctrlPts = RAW_XZ.map(([x, z], i) =>
-      new THREE.Vector3(x * TRACK_SCALE, ELEVATION[i] * ELEVATION_SCALE, z * TRACK_SCALE)
+      new THREE.Vector3(x * TRACK_SCALE, TRACK_ELEVATION[i] * ELEVATION_SCALE, z * TRACK_SCALE)
     );
 
     trackCurve  = new THREE.CatmullRomCurve3(ctrlPts, true, 'catmullrom', 0.5);
     totalLength = trackCurve.getLength();
 
-    // ★ 核心修復：以世界 Y 軸為 up，避免 Frenet Frame 累積扭轉
+    // ???詨?靽桀儔嚗誑銝? Y 頠貊 up嚗??Frenet Frame 蝝舐??剛?
     trackCurve.computeFrenetFrames = function (segments, closed) {
       const tangents  = new Array(segments + 1);
       const normals   = new Array(segments + 1);
@@ -124,8 +111,7 @@ const Track = (() => {
       return { tangents, normals, binormals };
     };
 
-    // 預烘 600 點供 getNearestT 用
-    bakedPath = [];
+    // ?? 600 暺? getNearestT ??    bakedPath = [];
     const BAKED_N = 600;
     for (let i = 0; i <= BAKED_N; i++) {
       bakedPath.push(trackCurve.getPoint(i / BAKED_N));
@@ -144,14 +130,13 @@ const Track = (() => {
     _buildClubTireWall(scene);
     _buildDirectionArrows(scene);
     _buildTrees(scene);
+    _buildTrackObstacles(scene);
     _buildCheckpoints();
 
-    return { trackCurve, checkpoints, totalLength, BUMP_SEGMENTS, TRACK_WIDTH };
+    return { trackCurve, checkpoints, totalLength, BUMP_SEGMENTS, TRACK_WIDTH, obstacles };
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  GROUND
-  // ═══════════════════════════════════════════════════════════════
+  // ????????????????????????????????????????????????????????????????  //  GROUND
   function _buildGround(scene) {
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(2400, 2400),
@@ -170,9 +155,8 @@ const Track = (() => {
     scene.add(ground);
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  ROAD MESH
-  // ═══════════════════════════════════════════════════════════════
+  // ????????????????????????????????????????????????????????????????  //  ROAD MESH
+  // ????????????????????????????????????????????????????????????????
   function _buildRoadMesh(scene) {
     const SEG    = 600;
     const pts    = trackCurve.getSpacedPoints(SEG);
@@ -277,7 +261,7 @@ const Track = (() => {
     scene.add(kerbMesh);
   }
 
-  // ── RUNOFF APRON (修復賽道邊緣破圖 / 補強視覺過渡) ───────────
+  // ?? RUNOFF APRON (靽桀儔鞈賡??楠?游? / 鋆撥閬死?腹) ???????????
   function _buildRunoffApron(scene) {
     const SEG = 600;
     const SHOULDER_IN = TRACK_WIDTH + 1.6;
@@ -327,18 +311,16 @@ const Track = (() => {
     scene.add(mesh);
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  DIRECTION ARROWS  ← 告訴玩家正確行進方向
-  //  每 1/18 圈放一個亮黃色三角箭頭，貼在路面上
-  // ═══════════════════════════════════════════════════════════════
+  // ????????????????????????????????????????????????????????????????  //  DIRECTION ARROWS  ???迄?拙振甇?Ⅱ銵脫??  //  瘥?1/18 ?銝?漁暺銝?蝞剝嚗票?刻楝?Ｖ?
+  // ????????????????????????????????????????????????????????????????
   function _buildDirectionArrows(scene) {
     const ARROW_COUNT = 18;
-    const ARROW_LEN   = 6.0;    // 前後總長 (m)
-    const ARROW_W     = 2.8;    // 半寬 (m)
+    const ARROW_LEN   = 6.0;    // ??蝮賡 (m)
+    const ARROW_W     = 2.8;    // ?祝 (m)
     const Y_LIFT      = ROAD_DECAL_LIFT + 0.03;
 
     const mat = new THREE.MeshBasicMaterial({
-      color:       0xFFD700,   // 亮黃
+      color:       0xFFD700,   // 鈭桅?
       side:        THREE.DoubleSide,
       transparent: true,
       opacity:     0.88,
@@ -353,12 +335,12 @@ const Track = (() => {
       const p   = trackCurve.getPoint(t);
       const tan = getForwardTangent(t);
 
-      // 用水平 tangent 計算穩定的左右方向（與 computeFrenetFrames 同邏輯）
+      // ?冽偌撟?tangent 閮?蝛拙??椰?單????computeFrenetFrames ??頛荔?
       const up     = new THREE.Vector3(0, 1, 0);
       const tHoriz = new THREE.Vector3(tan.x, 0, tan.z).normalize();
       const binorm = new THREE.Vector3().crossVectors(tHoriz, up).normalize();
 
-      // 三角形：尖端在前，底邊在後
+      // 銝?敶ｇ?撠垢?典?嚗??敺?
       const tip   = p.clone().addScaledVector(tan,   ARROW_LEN * 0.55);
       const baseL = p.clone().addScaledVector(tan,  -ARROW_LEN * 0.45)
                               .addScaledVector(binorm,  ARROW_W);
@@ -379,9 +361,8 @@ const Track = (() => {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  BARRIERS
-  // ═══════════════════════════════════════════════════════════════
+  // ????????????????????????????????????????????????????????????????  //  BARRIERS
+  // ????????????????????????????????????????????????????????????????
   function _buildBarriers(scene) {
     const SEG    = 500;
     const pts    = trackCurve.getSpacedPoints(SEG);
@@ -427,9 +408,8 @@ const Track = (() => {
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  START LINE + GANTRY
-  // ═══════════════════════════════════════════════════════════════
+  // ????????????????????????????????????????????????????????????????  //  START LINE + GANTRY
+  // ????????????????????????????????????????????????????????????????
   function _buildStartLine(scene) {
     const startPt  = trackCurve.getPoint(0);
     const tangent  = trackCurve.getTangent(0);
@@ -454,7 +434,7 @@ const Track = (() => {
       }
     }
 
-    // 起跑拱門
+    // 韏瑁??梢?
     const gMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
     [-1, 1].forEach(side => {
       const pole = new THREE.Mesh(new THREE.BoxGeometry(0.5, 9, 0.5), gMat);
@@ -468,205 +448,393 @@ const Track = (() => {
     scene.add(bar);
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  GRANDSTAND  — 沿主直線右側
-  // ═══════════════════════════════════════════════════════════════
-  function _buildGrandstand(scene) {
-    const sfX   = 0.62 * TRACK_SCALE + TRACK_WIDTH + 16;
-    const sfZ0  = -0.12 * TRACK_SCALE;   // 接近 Copse 端
-    const sfZ1  =  0.62 * TRACK_SCALE;   // S/F 端
-    const len   = (sfZ1 - sfZ0) * 0.78;
-    const centZ = (sfZ0 + sfZ1) / 2;
-
-    const stand = new THREE.Mesh(
-      new THREE.BoxGeometry(14, 9, len),
-      new THREE.MeshLambertMaterial({ color: 0x888888 })
-    );
-    stand.position.set(sfX + 7, 4.5, centZ);
-    scene.add(stand);
-
-    const roof = new THREE.Mesh(
-      new THREE.BoxGeometry(16, 0.6, len + 6),
-      new THREE.MeshLambertMaterial({ color: 0x1a3e88 })   // 銀石藍屋頂
-    );
-    roof.position.set(sfX + 7, 9.4, centZ);
-    scene.add(roof);
-
-    for (let r = 1; r < 5; r++) {
-      const stripe = new THREE.Mesh(
-        new THREE.BoxGeometry(14.1, 0.15, len),
-        new THREE.MeshLambertMaterial({ color: 0xdddddd })
-      );
-      stripe.position.set(sfX + 7, r * 1.8, centZ);
-      scene.add(stripe);
-    }
+  function _finishObject(obj) {
+    obj.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    return obj;
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  PIT COMPLEX (主直線維修區)
-  // ═══════════════════════════════════════════════════════════════
+  function _buildGrandstand(scene) {
+    const root = new THREE.Group();
+    const sfX = 0.62 * TRACK_SCALE + TRACK_WIDTH + 18;
+    const sfZ0 = -0.12 * TRACK_SCALE;
+    const sfZ1 = 0.62 * TRACK_SCALE;
+    const len = (sfZ1 - sfZ0) * 0.82;
+    const centZ = (sfZ0 + sfZ1) / 2;
+    const concreteMat = new THREE.MeshLambertMaterial({ color: 0x8d9399 });
+    const seatMatA = new THREE.MeshLambertMaterial({ color: 0x1672d6 });
+    const seatMatB = new THREE.MeshLambertMaterial({ color: 0xf2f2f2 });
+    const roofMat = new THREE.MeshLambertMaterial({ color: 0x173b76 });
+    const steelMat = new THREE.MeshLambertMaterial({ color: 0x5f666f });
+
+    for (let i = 0; i < 6; i++) {
+      const depth = 3.2 + i * 1.8;
+      const height = 0.9 + i * 0.95;
+      const row = new THREE.Mesh(new THREE.BoxGeometry(depth, 0.8, len), concreteMat);
+      row.position.set(sfX + depth * 0.5, height, centZ);
+      root.add(row);
+
+      const seatStrip = new THREE.Mesh(
+        new THREE.BoxGeometry(depth + 0.2, 0.22, len - 2.4),
+        i % 2 === 0 ? seatMatA : seatMatB
+      );
+      seatStrip.position.set(sfX + depth * 0.5, height + 0.46, centZ);
+      root.add(seatStrip);
+    }
+
+    const platform = new THREE.Mesh(new THREE.BoxGeometry(18, 0.8, len + 8), concreteMat);
+    platform.position.set(sfX + 10, 0.4, centZ);
+    root.add(platform);
+
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(21, 0.8, len + 10), roofMat);
+    roof.position.set(sfX + 11, 10.6, centZ);
+    root.add(roof);
+
+    for (const z of [sfZ0 + 10, centZ, sfZ1 - 10]) {
+      for (const x of [sfX + 2, sfX + 10, sfX + 18]) {
+        const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.6, 10.5, 0.6), steelMat);
+        pillar.position.set(x, 5.1, z);
+        root.add(pillar);
+      }
+    }
+
+    for (let i = 0; i < 4; i++) {
+      const brace = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, len + 2), steelMat);
+      brace.position.set(sfX + 4 + i * 4.5, 9.6, centZ);
+      root.add(brace);
+    }
+
+    const stairL = new THREE.Mesh(new THREE.BoxGeometry(2.4, 5.6, 8), concreteMat);
+    stairL.position.set(sfX - 0.5, 2.8, sfZ0 + 12);
+    root.add(stairL);
+    const stairR = stairL.clone();
+    stairR.position.z = sfZ1 - 12;
+    root.add(stairR);
+
+    root.position.y = 0.05;
+    scene.add(_finishObject(root));
+  }
+
   function _buildPitComplex(scene) {
-    const baseX = 0.62 * TRACK_SCALE - TRACK_WIDTH - 20;
-    const z0 = -0.06 * TRACK_SCALE;
-    const z1 = 0.56 * TRACK_SCALE;
+    const root = new THREE.Group();
+    const baseX = 0.62 * TRACK_SCALE - TRACK_WIDTH - 24;
+    const z0 = -0.08 * TRACK_SCALE;
+    const z1 = 0.58 * TRACK_SCALE;
     const len = z1 - z0;
     const centerZ = (z0 + z1) / 2;
+    const concreteMat = new THREE.MeshLambertMaterial({ color: 0x777c84 });
+    const glassMat = new THREE.MeshLambertMaterial({ color: 0x6f8fa6 });
+    const darkMat = new THREE.MeshLambertMaterial({ color: 0x34383d });
+    const accentMat = new THREE.MeshLambertMaterial({ color: 0x1f4f9d });
 
-    const pitMain = new THREE.Mesh(
-      new THREE.BoxGeometry(22, 8, len),
-      new THREE.MeshLambertMaterial({ color: 0x6f7278 })
-    );
-    pitMain.position.set(baseX - 10, 4, centerZ);
-    scene.add(pitMain);
+    const block = new THREE.Mesh(new THREE.BoxGeometry(26, 9, len), concreteMat);
+    block.position.set(baseX - 10, 4.5, centerZ);
+    root.add(block);
 
-    const glass = new THREE.Mesh(
-      new THREE.BoxGeometry(22.4, 2.5, len - 6),
-      new THREE.MeshLambertMaterial({ color: 0x5d758c })
-    );
-    glass.position.set(baseX - 10, 7.2, centerZ);
-    scene.add(glass);
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(18, 4, len - 18), darkMat);
+    upper.position.set(baseX - 11, 10.5, centerZ);
+    root.add(upper);
 
-    const pitWall = new THREE.Mesh(
-      new THREE.BoxGeometry(1.0, 1.5, len + 8),
-      new THREE.MeshLambertMaterial({ color: 0xc9c9c9 })
-    );
-    pitWall.position.set(baseX + 1.5, 0.75, centerZ);
-    scene.add(pitWall);
+    const glassBand = new THREE.Mesh(new THREE.BoxGeometry(26.4, 2.3, len - 8), glassMat);
+    glassBand.position.set(baseX - 10, 7.4, centerZ);
+    root.add(glassBand);
 
-    const garageMat = new THREE.MeshLambertMaterial({ color: 0x404449 });
-    const garageCount = 18;
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(28, 0.7, len + 6), accentMat);
+    roof.position.set(baseX - 10, 13, centerZ);
+    root.add(roof);
+
+    const pitLaneWall = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.7, len + 12), new THREE.MeshLambertMaterial({ color: 0xd3d6db }));
+    pitLaneWall.position.set(baseX + 2, 0.85, centerZ);
+    root.add(pitLaneWall);
+
+    const garageCount = 16;
     for (let i = 0; i < garageCount; i++) {
       const z = z0 + (i + 0.5) * (len / garageCount);
-      const bay = new THREE.Mesh(new THREE.BoxGeometry(6.5, 3.2, 2.2), garageMat);
-      bay.position.set(baseX + 0.5, 1.6, z);
-      scene.add(bay);
+      const bay = new THREE.Mesh(new THREE.BoxGeometry(7.4, 3.5, 2.6), darkMat);
+      bay.position.set(baseX + 0.6, 1.75, z);
+      root.add(bay);
+
+      const shutter = new THREE.Mesh(new THREE.BoxGeometry(0.22, 2.2, 2.0), new THREE.MeshLambertMaterial({ color: 0xe8edf2 }));
+      shutter.position.set(baseX + 4.1, 1.35, z);
+      root.add(shutter);
     }
+
+    for (let i = 0; i < 6; i++) {
+      const z = z0 + 16 + i * 30;
+      const truck = new THREE.Mesh(
+        new THREE.BoxGeometry(4.4, 2.3, 8.6),
+        new THREE.MeshLambertMaterial({ color: i % 2 === 0 ? 0xc42c24 : 0xffffff })
+      );
+      truck.position.set(baseX - 28, 1.15, z);
+      root.add(truck);
+    }
+
+    const hospitality = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 24), new THREE.MeshLambertMaterial({ color: 0x515861 }));
+    hospitality.position.set(baseX - 32, 3, centerZ + 18);
+    root.add(hospitality);
+
+    scene.add(_finishObject(root));
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  SPONSOR BOARDS
-  // ═══════════════════════════════════════════════════════════════
   function _buildSponsorBoards(scene) {
-    const SEG = 120;
+    const SEG = 140;
     const pts = trackCurve.getSpacedPoints(SEG);
     const frames = trackCurve.computeFrenetFrames(SEG, true);
-    const matA = new THREE.MeshLambertMaterial({ color: 0x0f4aa8 });
-    const matB = new THREE.MeshLambertMaterial({ color: 0xc81f27 });
-    const matC = new THREE.MeshLambertMaterial({ color: 0x1c1c1c });
+    const boardMats = [
+      new THREE.MeshLambertMaterial({ color: 0x0d4aa6 }),
+      new THREE.MeshLambertMaterial({ color: 0xc71f2c }),
+      new THREE.MeshLambertMaterial({ color: 0xf2f2f2 }),
+      new THREE.MeshLambertMaterial({ color: 0x1f1f1f }),
+    ];
+    const supportMat = new THREE.MeshLambertMaterial({ color: 0x8a8f96 });
 
-    for (let i = 0; i < SEG; i += 6) {
-      if ((i > 20 && i < 30) || (i > 90 && i < 100)) continue;
+    for (let i = 0; i < SEG; i += 5) {
+      if ((i > 22 && i < 34) || (i > 96 && i < 110)) continue;
       const p = pts[i];
       const b = frames.binormals[i];
       const t = trackCurve.getTangent(i / SEG).normalize();
-      const side = (i % 12 === 0) ? -1 : 1;
-      const pos = p.clone().addScaledVector(b, side * (TRACK_WIDTH + 10));
+      const side = i % 10 < 5 ? -1 : 1;
+      const pos = p.clone().addScaledVector(b, side * (TRACK_WIDTH + 10 + (i % 3) * 1.6));
+      const width = 6 + (i % 4) * 1.2;
       const board = new THREE.Mesh(
-        new THREE.BoxGeometry(7.5, 2.4, 0.5),
-        (i % 18 === 0) ? matA : (i % 18 === 6 ? matB : matC)
+        new THREE.BoxGeometry(width, 2.8, 0.45),
+        boardMats[i % boardMats.length]
       );
-      board.position.set(pos.x, 1.8, pos.z);
+      board.position.set(pos.x, 2.2, pos.z);
       board.rotation.y = Math.atan2(t.x, t.z);
-      scene.add(board);
+      scene.add(_finishObject(board));
 
-      const pole = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.12, 0.12, 2.6, 6),
-        new THREE.MeshLambertMaterial({ color: 0x8b8b8b })
-      );
-      pole.position.set(pos.x, 1.3, pos.z);
-      scene.add(pole);
+      for (const offset of [-width * 0.32, width * 0.32]) {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.2, 6), supportMat);
+        pole.position.set(pos.x + Math.cos(board.rotation.y) * offset, 1.5, pos.z - Math.sin(board.rotation.y) * offset);
+        scene.add(_finishObject(pole));
+      }
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  MARSHAL TOWERS
-  // ═══════════════════════════════════════════════════════════════
   function _buildMarshalTowers(scene) {
-    const markerT = [0.08, 0.22, 0.44, 0.60, 0.78];
+    const markerT = [0.08, 0.22, 0.34, 0.48, 0.60, 0.78];
+    const mastMat = new THREE.MeshLambertMaterial({ color: 0x7a828c });
+    const boothMat = new THREE.MeshLambertMaterial({ color: 0xf2eee4 });
+    const accentMat = new THREE.MeshLambertMaterial({ color: 0xff8a00 });
+
     markerT.forEach((t, idx) => {
       const p = trackCurve.getPoint(t);
       const tangent = trackCurve.getTangent(t).normalize();
       const side = idx % 2 === 0 ? 1 : -1;
       const offset = new THREE.Vector3(tangent.z, 0, -tangent.x).normalize()
-        .multiplyScalar(side * (TRACK_WIDTH + 16));
+        .multiplyScalar(side * (TRACK_WIDTH + 18));
       const base = p.clone().add(offset);
+      const tower = new THREE.Group();
 
-      const mast = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.45, 0.65, 10, 8),
-        new THREE.MeshLambertMaterial({ color: 0x727272 })
-      );
-      mast.position.set(base.x, 5, base.z);
-      scene.add(mast);
+      const mast = new THREE.Mesh(new THREE.BoxGeometry(2.4, 11, 2.4), mastMat);
+      mast.position.set(base.x, 5.5, base.z);
+      tower.add(mast);
 
-      const booth = new THREE.Mesh(
-        new THREE.BoxGeometry(3.2, 1.8, 3.2),
-        new THREE.MeshLambertMaterial({ color: 0xe8e8e8 })
-      );
-      booth.position.set(base.x, 9.8, base.z);
-      scene.add(booth);
+      const booth = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.4, 4.2), boothMat);
+      booth.position.set(base.x, 10.7, base.z);
+      tower.add(booth);
+
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.4, 4.8), accentMat);
+      roof.position.set(base.x, 12.2, base.z);
+      tower.add(roof);
+
+      const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 1.3, 8), accentMat);
+      beacon.position.set(base.x, 13.1, base.z);
+      tower.add(beacon);
+
+      scene.add(_finishObject(tower));
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  CLUB CORNER TIRE WALL  (銀石最緊的右彎)
-  // ═══════════════════════════════════════════════════════════════
   function _buildClubTireWall(scene) {
     const clubCenter = trackCurve.getPoint(18 / RAW_XZ.length);
-    const radius     = TRACK_WIDTH + 4.0;
-    const mat0       = new THREE.MeshLambertMaterial({ color: 0x111111 });
-    const mat1       = new THREE.MeshLambertMaterial({ color: 0xcc1111 });
-    const tireGeo    = new THREE.CylinderGeometry(0.65, 0.65, 0.85, 8);
+    const radius = TRACK_WIDTH + 4.5;
+    const tireGeo = new THREE.CylinderGeometry(0.68, 0.68, 0.85, 10);
+    const tireMats = [
+      new THREE.MeshLambertMaterial({ color: 0x121212 }),
+      new THREE.MeshLambertMaterial({ color: 0xcf1f2b }),
+      new THREE.MeshLambertMaterial({ color: 0xf0f0f0 }),
+    ];
 
-    for (let a = -100; a <= 100; a += 18) {
-      const rad  = (a * Math.PI) / 180;
-      const tire = new THREE.Mesh(tireGeo, (Math.round(a / 18) % 2 === 0) ? mat0 : mat1);
-      tire.position.set(
-        clubCenter.x + Math.cos(rad) * radius,
-        0.42,
-        clubCenter.z + Math.sin(rad) * radius
+    for (let layer = 0; layer < 2; layer++) {
+      for (let a = -102; a <= 102; a += 15) {
+        const rad = (a * Math.PI) / 180;
+        const tire = new THREE.Mesh(tireGeo, tireMats[Math.abs(Math.round(a / 15)) % tireMats.length]);
+        tire.position.set(
+          clubCenter.x + Math.cos(rad) * radius,
+          0.42 + layer * 0.9,
+          clubCenter.z + Math.sin(rad) * radius
+        );
+        tire.rotation.z = Math.PI / 2;
+        scene.add(_finishObject(tire));
+      }
+    }
+
+    for (let i = -2; i <= 2; i++) {
+      const cone = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.45, 1.2, 6),
+        new THREE.MeshLambertMaterial({ color: 0xff7a00 })
       );
-      tire.rotation.z = Math.PI / 2;
-      scene.add(tire);
+      cone.position.set(clubCenter.x - 8 + i * 2.1, 0.6, clubCenter.z + radius + 4);
+      scene.add(_finishObject(cone));
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  TREES
-  // ═══════════════════════════════════════════════════════════════
   function _buildTrees(scene) {
-    const treeMat  = new THREE.MeshLambertMaterial({ color: 0x2d5a1b });
-    const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5c3a1e });
-    const SEG    = 100;
-    const pts    = trackCurve.getSpacedPoints(SEG);
+    const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5e3b1d });
+    const leafMats = [
+      new THREE.MeshLambertMaterial({ color: 0x2d5f1f }),
+      new THREE.MeshLambertMaterial({ color: 0x3f7728 }),
+      new THREE.MeshLambertMaterial({ color: 0x4d8a2e }),
+    ];
+    const SEG = 120;
+    const pts = trackCurve.getSpacedPoints(SEG);
     const frames = trackCurve.computeFrenetFrames(SEG, true);
 
-    for (let i = 0; i < SEG; i += 4) {
-      const b  = frames.binormals[i];
-      const p  = pts[i];
-      [-1, 1].forEach(side => {
-        const off = TRACK_WIDTH + 8 + Math.random() * 14;
-        const tp  = p.clone().addScaledVector(b, side * off);
-        if (tp.y > 1.5 * ELEVATION_SCALE) return;
-
-        const h     = 3.5 + Math.random() * 4.5;
-        const trunk = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.22, 0.38, h * 0.4, 6), trunkMat
-        );
-        trunk.position.set(tp.x, h * 0.2, tp.z);
-        scene.add(trunk);
-
+    function addBroadleaf(position, scale) {
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * scale, 0.34 * scale, 2.8 * scale, 7), trunkMat);
+      trunk.position.y = 1.4 * scale;
+      tree.add(trunk);
+      for (let i = 0; i < 3; i++) {
         const canopy = new THREE.Mesh(
-          new THREE.SphereGeometry(1.3 + Math.random() * 0.9, 6, 5), treeMat
+          new THREE.SphereGeometry((1.3 + i * 0.15) * scale, 8, 7),
+          leafMats[i % leafMats.length]
         );
-        canopy.position.set(tp.x, h * 0.42 + 1.3, tp.z);
-        scene.add(canopy);
-      });
+        canopy.position.set((i - 1) * 0.3 * scale, 3.2 * scale + i * 0.45 * scale, (i % 2 === 0 ? 0.2 : -0.2) * scale);
+        tree.add(canopy);
+      }
+      tree.position.copy(position);
+      scene.add(_finishObject(tree));
+    }
+
+    function addPine(position, scale) {
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18 * scale, 0.28 * scale, 3.6 * scale, 7), trunkMat);
+      trunk.position.y = 1.8 * scale;
+      tree.add(trunk);
+      for (let i = 0; i < 3; i++) {
+        const cone = new THREE.Mesh(
+          new THREE.ConeGeometry((1.4 - i * 0.18) * scale, 2.4 * scale, 8),
+          leafMats[(i + 1) % leafMats.length]
+        );
+        cone.position.y = 3.2 * scale + i * 1.0 * scale;
+        tree.add(cone);
+      }
+      tree.position.copy(position);
+      scene.add(_finishObject(tree));
+    }
+
+    for (let i = 0; i < SEG; i += 2) {
+      const b = frames.binormals[i];
+      const p = pts[i];
+      for (const side of [-1, 1]) {
+        const clusterBase = p.clone().addScaledVector(b, side * (TRACK_WIDTH + 12 + (i % 5) * 2.2));
+        for (let c = 0; c < 2; c++) {
+          const tangent = getForwardTangent(i / SEG);
+          const depth = (c === 0 ? 0 : 7 + (i % 3) * 3);
+          const lateral = (Math.sin(i * 1.7 + c * 2.1) * 3.6);
+          const pos = clusterBase.clone()
+            .addScaledVector(b, side * lateral)
+            .addScaledVector(tangent, depth);
+          const scale = 0.9 + ((i + c) % 5) * 0.12;
+          if ((i + c) % 3 === 0) addPine(pos, scale);
+          else addBroadleaf(pos, scale);
+        }
+      }
+    }
+
+    const infieldMats = [
+      new THREE.MeshLambertMaterial({ color: 0xb8b86a }),
+      new THREE.MeshLambertMaterial({ color: 0xd7d77b }),
+    ];
+    for (let i = 0; i < 18; i++) {
+      const hay = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.4, 1.4, 1.6, 18),
+        infieldMats[i % infieldMats.length]
+      );
+      hay.position.set(-160 + (i % 6) * 24, 0.8, -40 + Math.floor(i / 6) * 28);
+      scene.add(_finishObject(hay));
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  CHECKPOINTS
-  // ═══════════════════════════════════════════════════════════════
+  function _buildTrackObstacles(scene) {
+    obstacles = [];
+    const coneMat = new THREE.MeshLambertMaterial({ color: 0xff6a00 });
+    const coneStripeMat = new THREE.MeshLambertMaterial({ color: 0xf4f4f4 });
+    const baleMat = new THREE.MeshLambertMaterial({ color: 0xd7c45c });
+    const barrelMat = new THREE.MeshLambertMaterial({ color: 0x1877c9 });
+    const capMat = new THREE.MeshLambertMaterial({ color: 0xececec });
+
+    function addCone(position, scale = 1) {
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * scale, 0.42 * scale, 0.92 * scale, 6), coneMat);
+      body.position.y = 0.46 * scale;
+      group.add(body);
+      const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.28 * scale, 0.18 * scale, 6), coneStripeMat);
+      stripe.position.y = 0.42 * scale;
+      group.add(stripe);
+      group.position.copy(position);
+      scene.add(_finishObject(group));
+      obstacles.push({ position: position.clone(), radius: 0.8 * scale, speedPenalty: 0.76 });
+    }
+
+    function addBale(position, scale = 1) {
+      const bale = new THREE.Mesh(new THREE.CylinderGeometry(0.9 * scale, 0.9 * scale, 1.5 * scale, 18), baleMat);
+      bale.rotation.z = Math.PI / 2;
+      bale.position.copy(position);
+      scene.add(_finishObject(bale));
+      obstacles.push({ position: position.clone(), radius: 1.35 * scale, speedPenalty: 0.52 });
+    }
+
+    function addBarrel(position, scale = 1) {
+      const group = new THREE.Group();
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.5 * scale, 0.56 * scale, 1.2 * scale, 14), barrelMat);
+      barrel.position.y = 0.6 * scale;
+      group.add(barrel);
+      const capTop = new THREE.Mesh(new THREE.CylinderGeometry(0.48 * scale, 0.48 * scale, 0.08 * scale, 14), capMat);
+      capTop.position.y = 1.16 * scale;
+      group.add(capTop);
+      const capBottom = capTop.clone();
+      capBottom.position.y = 0.04 * scale;
+      group.add(capBottom);
+      group.position.copy(position);
+      scene.add(_finishObject(group));
+      obstacles.push({ position: position.clone(), radius: 1.0 * scale, speedPenalty: 0.6 });
+    }
+
+    const placements = [
+      { t: 0.07, side: -0.12, type: 'cone', scale: 1.0 },
+      { t: 0.095, side: 0.18, type: 'cone', scale: 1.0 },
+      { t: 0.18, side: -0.22, type: 'barrel', scale: 1.0 },
+      { t: 0.31, side: 0.16, type: 'cone', scale: 1.1 },
+      { t: 0.34, side: -0.08, type: 'bale', scale: 0.95 },
+      { t: 0.46, side: 0.2, type: 'barrel', scale: 1.0 },
+      { t: 0.58, side: -0.18, type: 'cone', scale: 1.1 },
+      { t: 0.66, side: 0.1, type: 'bale', scale: 1.0 },
+      { t: 0.74, side: -0.15, type: 'barrel', scale: 0.95 },
+      { t: 0.88, side: 0.22, type: 'cone', scale: 1.0 },
+    ];
+
+    for (const placement of placements) {
+      const p = trackCurve.getPoint(placement.t);
+      const tangent = getForwardTangent(placement.t);
+      const side = new THREE.Vector3(tangent.z, 0, -tangent.x).normalize();
+      const pos = p.clone().addScaledVector(side, placement.side * TRACK_WIDTH);
+      pos.y += 0.02;
+      if (placement.type === 'cone') addCone(pos, placement.scale);
+      else if (placement.type === 'bale') addBale(pos, placement.scale);
+      else addBarrel(pos, placement.scale);
+    }
+  }
+
+  // ????????????????????????????????????????????????????????????????  //  CHECKPOINTS
+  // ????????????????????????????????????????????????????????????????
   function _buildCheckpoints() {
     checkpoints = [];
     for (let i = 0; i < 20; i++) {
@@ -680,9 +848,8 @@ const Track = (() => {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  UTILS
-  // ═══════════════════════════════════════════════════════════════
+  // ????????????????????????????????????????????????????????????????  //  UTILS
+  // ????????????????????????????????????????????????????????????????
   function getNearestT(worldPos, hintT) {
     const N = bakedPath.N || 600;
 
@@ -727,13 +894,13 @@ const Track = (() => {
     return tan.normalize();
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  PUBLIC API
-  // ═══════════════════════════════════════════════════════════════
+  // ????????????????????????????????????????????????????????????????  //  PUBLIC API
+  // ????????????????????????????????????????????????????????????????
   return {
     build, getNearestT, getTrackYAt, isBumpZone, getForwardTangent,
     get curve()       { return trackCurve; },
     get checkpoints() { return checkpoints; },
+    get obstacles()   { return obstacles; },
     get width()       { return TRACK_WIDTH; },
     get totalLength() { return totalLength; },
     BUMP_SEGMENTS, TOTAL_LAPS,
